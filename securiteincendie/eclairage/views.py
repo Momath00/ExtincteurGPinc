@@ -165,7 +165,6 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
                 f"<tr{bg}>"
                 f"<td class='center'>{it.ordre}</td>"
                 f"<td>{it.emplacement or '—'}</td>"
-                f"<td>{it.etage or '—'}</td>"
                 f"<td>{it.modele or '—'}</td>"
                 f"<td>{it.voltage or '—'}</td>"
                 f"<td class='center bold'{etat_style}>{it.etat or '—'}</td>"
@@ -173,7 +172,7 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
                 f"</tr>"
             )
         if not item_rows:
-            item_rows = "<tr><td colspan='7' class='muted center'>Aucune unité enregistrée</td></tr>"
+            item_rows = "<tr><td colspan='6' class='muted center'>Aucune unité enregistrée</td></tr>"
 
         logo_content = logo_data_uri(46)
 
@@ -190,7 +189,8 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
   .brand{{ display:flex; align-items:center; gap:12px; }}
   .logo-circle{{ width:46px; height:46px; border-radius:50%; background:#ffffff; box-shadow:0 0 0 2px rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }}
   .brand-text h1{{ font-size:12pt; font-weight:900; color:#ffffff; text-transform:uppercase; }}
-  .brand-text p{{ font-size:7.5pt; color:rgba(255,255,255,0.7); margin-top:1px; }}
+  .brand-text{{ border-left:1px solid rgba(255,255,255,0.25); padding-left:12px; margin-left:8px; }}
+  .brand-text p{{ font-size:8.5pt; font-weight:600; color:rgba(255,255,255,0.85); }}
   .info-card{{ border:1px solid #ccc; border-radius:4px; padding:8px 12px; }}
   .card-title{{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#555; margin-bottom:4px; }}
   .card-main{{ font-size:10pt; font-weight:700; color:#000; }}
@@ -214,7 +214,6 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
   <div class="brand">
     <div class="logo-circle">{logo_content}</div>
     <div class="brand-text">
-      <h1>Extincteur<span style="color:#e11324;">GP</span><span style="font-weight:400;">inc</span></h1>
       <p>Rapport de vérification — Éclairage d'urgence</p>
     </div>
   </div>
@@ -236,7 +235,7 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
 <div class="sec-title">Détail des unités d'éclairage d'urgence</div>
 <table>
   <thead><tr>
-    <th>No</th><th>Emplacement</th><th>Étage</th><th>Modèle</th><th>Voltage</th>
+    <th>No</th><th>Emplacement</th><th>Modèle</th><th>Voltage</th>
     <th title="D=Défectueux, C=Conforme, NI=Non inspecté">État</th><th>Remarque</th>
   </tr></thead>
   <tbody>{item_rows}</tbody>

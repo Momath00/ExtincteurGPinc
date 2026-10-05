@@ -5,6 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import TableExtincteurs from '@/components/rapports-extincteurs/TableExtincteurs'
 import TableBoyaux from '@/components/rapports-extincteurs/TableBoyaux'
+import FrequenceSelector from '@/components/rapports-extincteurs/FrequenceSelector'
+import BlocFacturationChantier from '@/components/rapports-extincteurs/BlocFacturationChantier'
+import OngletDeficiences from '@/components/rapports-extincteurs/OngletDeficiences'
+import { estEnDeficience } from '@/lib/nonConformites'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
@@ -15,7 +19,7 @@ const STATUT_BADGE: Record<string, { label: string; bg: string; color: string }>
   ferme: { label: 'Fermé', bg: '#e9f6f2', color: '#0d6b4f' },
 }
 
-type OngletPrincipal = 'extincteurs' | 'historique'
+type OngletPrincipal = 'extincteurs' | 'deficiences' | 'historique'
 
 export default function TechnicienRapportExtincteurDetailPage() {
   const router = useRouter()
@@ -67,6 +71,11 @@ export default function TechnicienRapportExtincteurDetailPage() {
 
   useEffect(() => { charger() }, [params.id])
 
+  // Une ligne modifiée dans un tableau → même valeur dans le rapport, pour que
+  // l'onglet Déficiences et les compteurs suivent sans recharger.
+  const majLigne = (liste: 'extincteurs' | 'boyaux') => (id: number, field: string, value: any) =>
+    setRapport((r: any) => r && ({ ...r, [liste]: r[liste].map((it: any) => it.id === id ? { ...it, [field]: value } : it) }))
+
   if (loading || !rapport) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -78,6 +87,8 @@ export default function TechnicienRapportExtincteurDetailPage() {
 
   const badge = STATUT_BADGE[rapport.statut] || STATUT_BADGE.ouvert
   const readOnly = rapport.statut === 'ferme'
+  const nbDeficiences = (rapport.extincteurs || []).filter(estEnDeficience).length
+    + (rapport.boyaux || []).filter(estEnDeficience).length
 
   return (
     <div>
@@ -103,7 +114,7 @@ export default function TechnicienRapportExtincteurDetailPage() {
           </p>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold" style={{ color: NAVY }}>
-              {rapport.batiment?.adresse_complete || '—'}
+              {rapport.batiment?.nom || rapport.batiment?.adresse_complete || '—'}
             </h1>
             <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
               style={{ background: badge.bg, color: badge.color }}>
@@ -114,10 +125,18 @@ export default function TechnicienRapportExtincteurDetailPage() {
             {[
               rapport.numero_job ? `Job ${rapport.numero_job}` : '',
               rapport.date_inspection
-                ? new Date(rapport.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'long' })
+                ? new Date(rapport.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'long' })
                 : '',
             ].filter(Boolean).join(' · ')}
           </p>
+          {rapport.batiment?.nom && (
+            <p className="text-sm font-semibold flex items-center gap-1 mt-0.5" style={{ color: NAVY }}>
+              <i className="ti ti-map-pin" style={{ color: ORANGE }} /> {rapport.batiment.adresse_complete}
+            </p>
+          )}
+          <div className="mt-2">
+            <FrequenceSelector compact readOnly valeur={rapport.frequence} />
+          </div>
         </div>
 
         {!readOnly && (
@@ -147,6 +166,8 @@ export default function TechnicienRapportExtincteurDetailPage() {
         </Link>
       )}
 
+      <BlocFacturationChantier rapport={rapport} />
+
       {readOnly && (
         <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-md border text-sm font-semibold"
           style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#475569' }}>
@@ -164,6 +185,7 @@ export default function TechnicienRapportExtincteurDetailPage() {
       <div className="flex gap-0.5 sm:gap-1 mb-6 border-b border-gray-100 overflow-x-auto">
         {([
           { key: 'extincteurs', label: `Extincteurs (${rapport.extincteurs?.length || 0})`, shortLabel: `Extincteurs (${rapport.extincteurs?.length || 0})` },
+          { key: 'deficiences', label: `Déficiences (${nbDeficiences})`, shortLabel: `Déf. (${nbDeficiences})` },
           { key: 'historique', label: `Historique (${rapport.historique?.length || 0})`, shortLabel: `Hist. (${rapport.historique?.length || 0})` },
         ] as { key: OngletPrincipal; label: string; shortLabel: string }[]).map(o => (
           <button
@@ -183,10 +205,12 @@ export default function TechnicienRapportExtincteurDetailPage() {
 
       {onglet === 'extincteurs' && (
         <div className="flex flex-col gap-6">
-          <TableExtincteurs rapport={rapport} readOnly={readOnly} onRefresh={charger} />
-          <TableBoyaux rapport={rapport} readOnly={readOnly} onRefresh={charger} />
+          <TableExtincteurs rapport={rapport} readOnly={readOnly} onRefresh={charger} onItemChange={majLigne('extincteurs')} />
+          <TableBoyaux rapport={rapport} readOnly={readOnly} onRefresh={charger} onItemChange={majLigne('boyaux')} />
         </div>
       )}
+
+      {onglet === 'deficiences' && <OngletDeficiences rapport={rapport} />}
 
       {onglet === 'historique' && (
         <div className="bg-white rounded-md border border-gray-100 p-5">

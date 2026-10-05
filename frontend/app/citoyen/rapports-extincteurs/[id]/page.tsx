@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { estEnDeficience } from '@/lib/nonConformites'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
@@ -54,7 +55,7 @@ export default function CitoyenRapportExtincteurDetailPage() {
   const estFerme = rapport.statut === 'ferme'
   const certificatEnvoye = rapport.certificat?.certificat_envoye === true
   const extincteurs = rapport.extincteurs || []
-  const aReparationRequise = extincteurs.some((it: any) => it.etat === 'D')
+  const aReparationRequise = extincteurs.some(estEnDeficience)
 
   return (
     <div className="max-w-2xl">
@@ -64,7 +65,12 @@ export default function CitoyenRapportExtincteurDetailPage() {
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <h1 className="text-2xl font-bold" style={{ color: NAVY }}>{rapport.batiment?.adresse_complete || '—'}</h1>
+          <h1 className="text-2xl font-bold" style={{ color: NAVY }}>{rapport.batiment?.nom || rapport.batiment?.adresse_complete || '—'}</h1>
+          {rapport.batiment?.nom && (
+            <p className="text-sm font-semibold flex items-center gap-1 mt-0.5" style={{ color: NAVY }}>
+              <i className="ti ti-map-pin text-red-600" /> {rapport.batiment.adresse_complete}
+            </p>
+          )}
           {estFerme ? (
             <>
               <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-green-50 text-green-700">
@@ -89,7 +95,7 @@ export default function CitoyenRapportExtincteurDetailPage() {
         {rapport.date_inspection && (
           <p className="text-gray-500 text-sm">
             <i className="ti ti-calendar mr-1" />
-            {new Date(rapport.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'long' })}
+            {new Date(rapport.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'long' })}
           </p>
         )}
       </div>

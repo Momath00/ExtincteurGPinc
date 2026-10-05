@@ -15,7 +15,11 @@ class Client(models.Model):
     contact_nom = models.CharField(max_length=150, blank=True)
     contact_email = models.EmailField(blank=True)
     contact_telephone = models.CharField(max_length=20, blank=True)
+    contact_cellulaire = models.CharField(max_length=20, blank=True)
+    # Adresse de facturation (« Facturer à » sur le rapport).
     adresse = models.CharField(max_length=300, blank=True)
+    ville = models.CharField(max_length=100, blank=True)
+    code_postal = models.CharField(max_length=10, blank=True)
     mode_livraison = models.CharField(
         max_length=20,
         choices=ModeLivraison.choices,
@@ -43,9 +47,13 @@ class Batiment(models.Model):
         Client, on_delete=models.PROTECT, related_name="batiments"
     )
 
+    # Nom du lieu des travaux, quand l'adresse seule ne suffit pas —
+    # ex. « Zone 100 » d'une usine où chaque zone a son propre rapport.
+    nom = models.CharField(max_length=150, blank=True)
     numero_civique = models.CharField(max_length=10)
     rue = models.CharField(max_length=200)
     ville = models.CharField(max_length=100)
+    province = models.CharField(max_length=50, blank=True, default="Québec")
     code_postal = models.CharField(max_length=10, blank=True)
 
     direction = models.CharField(
@@ -94,6 +102,10 @@ class RapportExtincteur(models.Model):
         OUVERT = "ouvert", "Ouvert"
         FERME = "ferme", "Fermé"
 
+    class Frequence(models.TextChoices):
+        MENSUELLE = "mensuelle", "Mensuelle"
+        ANNUELLE = "annuelle", "Annuelle"
+
     batiment = models.ForeignKey(
         Batiment, on_delete=models.CASCADE, related_name="rapports_extincteurs"
     )
@@ -119,6 +131,7 @@ class RapportExtincteur(models.Model):
         help_text="Le citoyen qui pourra consulter ce rapport et son certificat.",
     )
     numero_job = models.CharField(max_length=50, blank=True, help_text="Champ « JOB » du formulaire papier.")
+    frequence = models.CharField(max_length=10, choices=Frequence.choices, default=Frequence.ANNUELLE)
 
     statut = models.CharField(max_length=10, choices=Statut.choices, default=Statut.OUVERT)
 
@@ -237,6 +250,25 @@ class HistoriqueRapportExtincteur(models.Model):
         return f"{self.date_heure:%Y-%m-%d %H:%M} — {self.description}"
 
 
+# Légende des non-conformités — mêmes codes que le formulaire papier des
+# clients industriels : (code, libellé français, libellé anglais).
+LEGENDE_NON_CONFORMITES = [
+    ("TH", "Test hydrostatique", "Hydrostatic test"),
+    ("6Y", "Entretien préventif 6 ans", "6 year preventive maintenance"),
+    ("RL", "Déplacer", "Relocate"),
+    ("RC", "Recharger", "To recharge"),
+    ("SUPM", "Support manquant", "Missing support"),
+    ("SUPR", "Réparer support", "Repair support"),
+    ("LOCK", "Serrure pour cabinet", "Cabinet lock"),
+    ("MIS", "Manquant", "Missing"),
+    ("PIC", "Installer un pictogramme", "Install sign"),
+    ("RP", "Remplacer", "To replace"),
+    ("REC", "Recommandé", "Recommendation"),
+    ("GAU", "Réparer manomètre", "Repair gauge"),
+]
+CODES_NON_CONFORMITES = [code for code, _fr, _en in LEGENDE_NON_CONFORMITES]
+
+
 class ExtincteurItem(models.Model):
     """Une ligne du tableau de vérification des extincteurs portatifs."""
 
@@ -250,7 +282,11 @@ class ExtincteurItem(models.Model):
         LB5 = "5lb", "5 lb"
         LB10 = "10lb", "10 lb"
         LB13_25 = "13.25lb", "13.25 lb"
+        LB15 = "15lb", "15 lb"
         LB20 = "20lb", "20 lb"
+        LB30 = "30lb", "30 lb"
+        LB50 = "50lb", "50 lb"
+        LB125 = "125lb", "125 lb"
         KG2_5 = "2.5kg", "2.5 kg"
         KG5 = "5kg", "5 kg"
         KG10 = "10kg", "10 kg"
@@ -266,6 +302,8 @@ class ExtincteurItem(models.Model):
         K = "K", "Produits chimiques humides (K)"
         HALOTRON = "halotron", "Halotron"
         FE36 = "fe36", "FE36"
+        PK = "PK", "Purple K (PK)"
+        D = "D", "Classe D (métaux)"
         AUTRE = "autre", "Autre"
 
     class Marque(models.TextChoices):
@@ -276,14 +314,30 @@ class ExtincteurItem(models.Model):
         GENERAL = "general", "General"
         FLAG = "flag", "Flag"
         STRIKE_FIRST = "strikefirst", "Strike First"
+        BADGER = "badger", "Badger"
+        PYRENE = "pyrene", "Pyrene"
+        SENTRY = "sentry", "Sentry"
+        PYROCHEM = "pyrochem", "Pyro Chem"
         AUTRE = "autre", "Autre"
 
     rapport = models.ForeignKey(RapportExtincteur, on_delete=models.CASCADE, related_name="extincteurs")
+    section = models.ForeignKey(
+        "SectionExtincteurs", null=True, blank=True, on_delete=models.SET_NULL, related_name="extincteurs"
+    )
 
+    # Numéro d'inventaire du client (étiquette sur l'extincteur).
+    numero = models.CharField(max_length=30, blank=True)
     etage = models.CharField(max_length=100, blank=True)
     numero_serie = models.CharField(max_length=100, blank=True)
     etat = models.CharField(max_length=2, choices=Etat.choices, null=True, blank=True, default=None)
     emplacement = models.CharField(max_length=200, blank=True)
+    # Code d'identification du client, ex. « ADU/EXT/F100A ».
+    code_equipement = models.CharField(max_length=50, blank=True)
+    # Codes de LEGENDE_NON_CONFORMITES, ex. ["TH", "SUPM"].
+    non_conformites = models.JSONField(default=list, blank=True)
+    # Modèle tel qu'écrit par le client, ex. « ABC 20 Cartouche » — type et
+    # format en sont déduits, mais on garde le libellé d'origine.
+    modele = models.CharField(max_length=60, blank=True)
     # Année seule (pas de mois/jour) — un extincteur n'a qu'une date de
     # fabrication annuelle sur son étiquette, jamais un jour précis.
     _annee_validators = [MinValueValidator(1900), MaxValueValidator(2100)]
@@ -292,6 +346,7 @@ class ExtincteurItem(models.Model):
     type_extincteur = models.CharField(max_length=10, choices=TypeExtincteur.choices, blank=True)
     marque = models.CharField(max_length=15, choices=Marque.choices, blank=True)
     prochaine_maintenance = models.PositiveIntegerField(null=True, blank=True, validators=_annee_validators)
+    dernier_test_hydrostatique = models.PositiveIntegerField(null=True, blank=True, validators=_annee_validators)
     prochain_test_hydrostatique = models.PositiveIntegerField(null=True, blank=True, validators=_annee_validators)
     remarque = models.CharField(max_length=300, blank=True)
 
@@ -302,6 +357,23 @@ class ExtincteurItem(models.Model):
 
     def __str__(self):
         return f"Extincteur #{self.ordre} — {self.rapport}"
+
+
+class SectionExtincteurs(models.Model):
+    """Regroupement d'extincteurs dans un rapport — ex. « Magasin »,
+    « Cafétéria » dans la Zone 100 d'une usine. `note` garde les consignes
+    d'accès (permis, personne à aviser…)."""
+
+    rapport = models.ForeignKey(RapportExtincteur, on_delete=models.CASCADE, related_name="sections")
+    nom = models.CharField(max_length=200)
+    note = models.TextField(blank=True)
+    ordre = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordre", "id"]
+
+    def __str__(self):
+        return f"{self.nom} — {self.rapport}"
 
 
 class BoyauItem(models.Model):

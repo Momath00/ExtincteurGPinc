@@ -40,6 +40,10 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 # Adresse qui reçoit les messages du formulaire de contact public
 CONTACT_EMAIL = config('CONTACT_EMAIL', default='info@extincteurgpinc.com')
 
+# Module « éclairage d'urgence » vendu séparément : désactivé, il disparaît de
+# l'API, du frontend (via GET /api/config/), des certificats et des courriels.
+MODULE_ECLAIRAGE = config('MODULE_ECLAIRAGE', default=False, cast=bool)
+
 # Application definition
 
 INSTALLED_APPS = [

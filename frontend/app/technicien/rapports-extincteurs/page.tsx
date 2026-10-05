@@ -119,6 +119,7 @@ export default function TechnicienRapportsExtincteursPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: NAVY }}>
+                        {r.batiment?.nom && <span className="font-bold">{r.batiment.nom} · </span>}
                         {r.batiment?.adresse_complete || '—'}
                       </p>
                       <p className="text-xs text-gray-400 truncate">{r.batiment?.client_nom || '—'}</p>
@@ -133,7 +134,7 @@ export default function TechnicienRapportsExtincteursPage() {
                   <span className="flex items-center gap-1">
                     <i className="ti ti-calendar text-gray-300" />
                     {r.date_inspection
-                      ? new Date(r.date_inspection).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' })
+                      ? new Date(r.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' })
                       : 'Date non définie'}
                   </span>
                   <span className="flex items-center gap-1">

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useModules } from '@/lib/modules'
 
 const RED = '#0a0b0d'
 const ACCENT = '#e11324'
@@ -42,6 +43,12 @@ const NAV_GROUPS = [
 
 export default function Sidebar({ user, onClose }: { user: any; onClose?: () => void }) {
   const pathname = usePathname()
+  const modules = useModules()
+  // Le module éclairage (vendu séparément) reste masqué tant qu'il n'est pas activé côté serveur.
+  const navGroups = NAV_GROUPS.map(g => ({
+    ...g,
+    items: g.items.filter(item => modules?.module_eclairage || !item.href.includes('rapports-eclairage')),
+  }))
   const router = useRouter()
   const [openGroup, setOpenGroup] = useState<string | null>(null)
 
@@ -90,7 +97,7 @@ export default function Sidebar({ user, onClose }: { user: any; onClose?: () => 
       </div>
 
       <nav className="flex-1 px-3 pb-4 flex flex-col gap-6 overflow-y-auto sidebar-scroll border-t border-white/10 pt-6">
-        {NAV_GROUPS.map((group, gi) => (
+        {navGroups.map((group, gi) => (
           <div key={group.label}>
             <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
               {group.label}

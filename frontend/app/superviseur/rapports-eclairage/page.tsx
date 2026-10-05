@@ -168,13 +168,13 @@ function RapportsEclairageListContent() {
         </div>
 
         <div className="relative flex-1 sm:max-w-xs">
-          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm" />
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
           <input
             type="text"
             value={recherche}
             onChange={e => setRecherche(e.target.value)}
             placeholder="Rechercher adresse, client..."
-            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-100 rounded-md focus:outline-none focus:border-[#dc2626] bg-white"
+            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-[#dc2626] bg-white placeholder:text-gray-400"
           />
           {recherche && (
             <button onClick={() => setRecherche('')}
@@ -231,7 +231,7 @@ function RapportsEclairageListContent() {
                       </p>
                       {r.date_inspection && (
                         <p className="text-xs text-gray-400">
-                          {new Date(r.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'medium' })}
+                          {new Date(r.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'medium' })}
                         </p>
                       )}
                     </div>

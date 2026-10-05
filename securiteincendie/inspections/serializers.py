@@ -1,8 +1,10 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from api.serializers import UtilisateurSerializer
 from accounts.models import Utilisateur
 from .models import (
+    CODES_NON_CONFORMITES,
     Batiment,
     BoyauItem,
     CertificatExtincteur,
@@ -10,6 +12,7 @@ from .models import (
     ExtincteurItem,
     HistoriqueRapportExtincteur,
     RapportExtincteur,
+    SectionExtincteurs,
 )
 
 
@@ -23,8 +26,8 @@ class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
         fields = [
-            "id", "nom", "contact_nom", "contact_email", "contact_telephone",
-            "adresse", "mode_livraison", "mode_livraison_display", "nb_batiments", "date_creation",
+            "id", "nom", "contact_nom", "contact_email", "contact_telephone", "contact_cellulaire",
+            "adresse", "ville", "code_postal", "mode_livraison", "mode_livraison_display", "nb_batiments", "date_creation",
         ]
 
 
@@ -35,11 +38,27 @@ class BatimentSerializer(serializers.ModelSerializer):
     client_contact_email = serializers.CharField(source="client.contact_email", read_only=True)
     proprietaire = UtilisateurSerializer(read_only=True)
     proprietaire_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    # Bloc « Facturer à » du rapport.
+    client_facturation = serializers.SerializerMethodField()
+
+    def get_client_facturation(self, obj):
+        c = obj.client
+        return {
+            "nom": c.nom,
+            "adresse": c.adresse,
+            "ville": c.ville,
+            "code_postal": c.code_postal,
+            "contact_nom": c.contact_nom,
+            "contact_telephone": c.contact_telephone,
+            "contact_cellulaire": c.contact_cellulaire,
+            "contact_email": c.contact_email,
+        }
 
     class Meta:
         model = Batiment
         fields = [
-            "id", "client", "client_nom", "client_mode_livraison", "client_contact_email", "numero_civique", "rue", "ville", "code_postal",
+            "id", "client", "client_nom", "client_mode_livraison", "client_contact_email", "client_facturation",
+            "nom", "numero_civique", "rue", "ville", "province", "code_postal",
             "adresse_complete", "direction",
             "type_application", "proprietaire", "proprietaire_id", "date_creation",
         ]
@@ -51,14 +70,36 @@ class ExtincteurItemSerializer(serializers.ModelSerializer):
     marque_display = serializers.CharField(source="get_marque_display", read_only=True)
     etat_display = serializers.CharField(source="get_etat_display", read_only=True)
 
+    def validate_non_conformites(self, valeur):
+        if not isinstance(valeur, list):
+            raise serializers.ValidationError("Liste de codes attendue.")
+        inconnus = [c for c in valeur if c not in CODES_NON_CONFORMITES]
+        if inconnus:
+            raise serializers.ValidationError(f"Code(s) inconnu(s) : {', '.join(map(str, inconnus))}")
+        # Ordre de la légende, sans doublon.
+        return [c for c in CODES_NON_CONFORMITES if c in valeur]
+
+    def validate(self, attrs):
+        section = attrs.get("section")
+        if section and self.instance and section.rapport_id != self.instance.rapport_id:
+            raise serializers.ValidationError({"section": "Cette section appartient à un autre rapport."})
+        return attrs
+
     class Meta:
         model = ExtincteurItem
         fields = [
-            "id", "rapport", "ordre", "etage", "numero_serie", "etat", "etat_display", "emplacement",
-            "date_fabrication", "format", "format_display", "type_extincteur", "type_extincteur_display",
+            "id", "rapport", "section", "ordre", "numero", "etage", "numero_serie", "etat", "etat_display",
+            "emplacement", "code_equipement", "non_conformites", "modele", "date_fabrication", "format", "format_display", "type_extincteur", "type_extincteur_display",
             "marque", "marque_display", "prochaine_maintenance",
-            "prochain_test_hydrostatique", "remarque",
+            "dernier_test_hydrostatique", "prochain_test_hydrostatique", "remarque",
         ]
+        read_only_fields = ["rapport"]
+
+
+class SectionExtincteursSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SectionExtincteurs
+        fields = ["id", "rapport", "nom", "note", "ordre"]
         read_only_fields = ["rapport"]
 
 
@@ -97,6 +138,7 @@ class RapportExtincteurListSerializer(serializers.ModelSerializer):
     techniciens = UtilisateurSerializer(many=True, read_only=True)
     citoyen = UtilisateurSerializer(read_only=True)
     statut_display = serializers.CharField(source="get_statut_display", read_only=True)
+    frequence_display = serializers.CharField(source="get_frequence_display", read_only=True)
     nb_extincteurs = serializers.SerializerMethodField()
     certificat = serializers.SerializerMethodField()
     rapport_eclairage_lie = serializers.SerializerMethodField()
@@ -112,6 +154,8 @@ class RapportExtincteurListSerializer(serializers.ModelSerializer):
             return None
 
     def get_rapport_eclairage_lie(self, obj):
+        if not settings.MODULE_ECLAIRAGE:
+            return None
         eclairage = getattr(obj, "rapport_eclairage_lie", None)
         if eclairage is None:
             return None
@@ -120,7 +164,7 @@ class RapportExtincteurListSerializer(serializers.ModelSerializer):
     class Meta:
         model = RapportExtincteur
         fields = [
-            "id", "batiment", "techniciens", "citoyen", "numero_job",
+            "id", "batiment", "techniciens", "citoyen", "numero_job", "frequence", "frequence_display",
             "statut", "statut_display", "date_inspection", "date_derniere_sauvegarde",
             "date_fermeture", "nb_extincteurs", "certificat", "rapport_eclairage_lie",
         ]
@@ -128,6 +172,7 @@ class RapportExtincteurListSerializer(serializers.ModelSerializer):
 
 class RapportExtincteurDetailSerializer(RapportExtincteurListSerializer):
     cree_par = UtilisateurSerializer(read_only=True)
+    sections = SectionExtincteursSerializer(many=True, read_only=True)
     extincteurs = ExtincteurItemSerializer(many=True, read_only=True)
     boyaux = BoyauItemSerializer(many=True, read_only=True)
     historique = HistoriqueRapportExtincteurSerializer(many=True, read_only=True)
@@ -135,7 +180,7 @@ class RapportExtincteurDetailSerializer(RapportExtincteurListSerializer):
 
     class Meta(RapportExtincteurListSerializer.Meta):
         fields = RapportExtincteurListSerializer.Meta.fields + [
-            "cree_par", "extincteurs", "boyaux", "historique", "certificat",
+            "cree_par", "sections", "extincteurs", "boyaux", "historique", "certificat",
         ]
 
 
@@ -153,5 +198,5 @@ class RapportExtincteurCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RapportExtincteur
-        fields = ["id", "batiment", "techniciens", "citoyen", "numero_job", "date_inspection"]
+        fields = ["id", "batiment", "techniciens", "citoyen", "numero_job", "frequence", "date_inspection"]
         read_only_fields = ["id"]

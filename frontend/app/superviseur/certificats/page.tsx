@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useModules } from '@/lib/modules'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
@@ -38,6 +39,7 @@ async function downloadHtml(url: string) {
 
 export default function CertificatsPage() {
   const router = useRouter()
+  const modules = useModules()
   const [certificats, setCertificats] = useState<Certificat[]>([])
   const [loading, setLoading] = useState(true)
   const [recherche, setRecherche] = useState('')
@@ -107,7 +109,7 @@ export default function CertificatsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: NAVY }}>Certificats</h1>
-          <p className="text-gray-400 text-sm mt-1">{certificats.length} certificat{certificats.length !== 1 ? 's' : ''} émis — extincteurs et éclairage d'urgence</p>
+          <p className="text-gray-400 text-sm mt-1">{certificats.length} certificat{certificats.length !== 1 ? 's' : ''} émis — extincteurs{modules?.module_eclairage ? " et éclairage d'urgence" : ''}</p>
         </div>
       </div>
 
@@ -132,13 +134,13 @@ export default function CertificatsPage() {
 
       <div className="flex flex-col lg:flex-row gap-3 mb-5">
         <div className="relative flex-1 lg:max-w-xs">
-          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm" />
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
           <input
             type="text"
             value={recherche}
             onChange={e => setRecherche(e.target.value)}
             placeholder="Numéro, adresse, client..."
-            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-100 rounded-md focus:outline-none focus:border-[#dc2626] bg-white"
+            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-[#dc2626] bg-white placeholder:text-gray-400"
           />
           {recherche && (
             <button onClick={() => setRecherche('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">

@@ -93,15 +93,13 @@ def _documents_prets_directs(batiment) -> list:
 
 def _label_direct(rapport) -> str:
     parties = ["Extincteurs portatifs"]
-    if getattr(rapport, "rapport_eclairage_lie", None):
+    if settings.MODULE_ECLAIRAGE and getattr(rapport, "rapport_eclairage_lie", None):
         parties.append("éclairage d'urgence")
     return " + ".join(parties)
 
 
 def _element_direct(rapport, utilisateur) -> dict:
     """Pièces jointes (rapport(s) + certificat en PDF) d'un rapport fermé."""
-    from eclairage.views import RapportEclairageViewSet
-
     from .pdf import pdf_action
     from .views import RapportExtincteurViewSet
 
@@ -110,8 +108,10 @@ def _element_direct(rapport, utilisateur) -> dict:
     attachments = [
         (f"rapport-extincteurs-{cert.numero}.pdf", pdf_action(RapportExtincteurViewSet, "telecharger", rapport.pk, utilisateur), pdf),
     ]
-    eclairage = getattr(rapport, "rapport_eclairage_lie", None)
+    eclairage = getattr(rapport, "rapport_eclairage_lie", None) if settings.MODULE_ECLAIRAGE else None
     if eclairage:
+        from eclairage.views import RapportEclairageViewSet
+
         attachments.append(
             (f"rapport-eclairage-{cert.numero}.pdf", pdf_action(RapportEclairageViewSet, "telecharger", eclairage.pk, utilisateur), pdf)
         )

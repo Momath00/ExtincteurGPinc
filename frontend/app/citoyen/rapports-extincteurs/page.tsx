@@ -93,12 +93,13 @@ export default function CitoyenRapportsExtincteursPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate" style={{ color: NAVY }}>
+                      {r.batiment?.nom && <span className="font-bold">{r.batiment.nom} · </span>}
                       {r.batiment?.adresse_complete || '—'}
                     </p>
                     {r.date_inspection && (
                       <p className="text-xs text-gray-400 mt-0.5">
                         <i className="ti ti-calendar mr-1" />
-                        {new Date(r.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'long' })}
+                        {new Date(r.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'long' })}
                       </p>
                     )}
                   </div>

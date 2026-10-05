@@ -1,4 +1,5 @@
 from django.db.models import ProtectedError
+from django.conf import settings
 from django.http import HttpResponse
 from django.utils.html import escape
 from django.utils import timezone
@@ -15,9 +16,11 @@ from .models import (
     BoyauItem,
     CertificatExtincteur,
     Client,
+    LEGENDE_NON_CONFORMITES,
     ExtincteurItem,
     ModeEnvoi,
     RapportExtincteur,
+    SectionExtincteurs,
 )
 from .serializers import (
     BatimentSerializer,
@@ -28,18 +31,8 @@ from .serializers import (
     RapportExtincteurCreateSerializer,
     RapportExtincteurDetailSerializer,
     RapportExtincteurListSerializer,
+    SectionExtincteursSerializer,
 )
-
-# ── Légende du rapport extincteurs portatifs ─────────────────────────────
-LEGENDE_EXTINCTEURS = [
-    ("HT", "Test hydro, pour boyaux et/ou extincteurs, voir (Notes)"),
-    ("T/O", "Les extincteurs ou les boyaux ont dépassé le temps recommandé, voir (Notes)"),
-    ("MQ", "Extincteur ou boyaux manquant, doit être ajouté, voir (Notes)"),
-    ("RM", "Recommandation, voir (Notes)"),
-    ("D", "Déficience, voir (Notes)"),
-    ("MT", "Maintenance requise, voir (Notes)"),
-]
-
 
 _MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
             'septembre', 'octobre', 'novembre', 'décembre']
@@ -236,7 +229,8 @@ def _html_certificat_unifie(*, cert, bat, date_insp, techniciens, equipement_row
   .brand{{ display:flex; align-items:center; gap:10px; }}
   .logo-box{{ height:36px; max-width:170px; display:flex; align-items:center; flex-shrink:0; }} .logo-box img{{ max-height:100%; max-width:100%; }}
   .brand-text h1{{ font-size:11.5pt; font-weight:900; color:#ffffff; text-transform:uppercase; letter-spacing:1px; }}
-  .brand-text p{{ font-size:7.5pt; color:rgba(255,255,255,0.7); margin-top:1px; }}
+  .brand-text{{ border-left:1px solid rgba(255,255,255,0.25); padding-left:12px; margin-left:8px; }}
+  .brand-text p{{ font-size:8.5pt; font-weight:600; color:rgba(255,255,255,0.85); }}
   .cert-badge{{ text-align:right; }}
   .title-banner{{ background:#0a0b0d; color:#fff; text-align:center; padding:6px 0; border-radius:4px; margin-bottom:9px; }}
   .title-banner h2{{ font-size:11pt; font-weight:700; letter-spacing:2px; text-transform:uppercase; }}
@@ -271,7 +265,6 @@ def _html_certificat_unifie(*, cert, bat, date_insp, techniciens, equipement_row
   <div class="brand">
 <div class="logo-box">{logo_content}</div>
 <div class="brand-text">
-  <h1>Extincteur<span style="color:#e11324;">GP</span><span style="font-weight:400;">inc</span></h1>
   <p>Inspection &amp; Certification — {sous_titre}</p>
 </div>
   </div>
@@ -319,12 +312,79 @@ def _html_certificat_unifie(*, cert, bat, date_insp, techniciens, equipement_row
 <div style="font-size:7.5pt;color:#555;">Certificat N° {cert.numero}</div>
   </div>
 </div>
-<div style="font-size:7pt;color:#9ca3af;margin-top:10px;">Ce certificat atteste la vérification des extincteurs portatifs et de l'éclairage d'urgence à la date d'inspection indiquée.</div>
+<div style="font-size:7pt;color:#9ca3af;margin-top:10px;">Ce certificat atteste la vérification des extincteurs portatifs{" et de l'éclairage d'urgence" if settings.MODULE_ECLAIRAGE else ""} à la date d'inspection indiquée.</div>
 {pied_de_page_entreprise()}
 </div>
 </body>
 </html>"""
     return html
+
+
+def _modele_extincteur(it):
+    """« ABC 20 lb » — type + format, sinon le libellé d'origine du client."""
+    parties = [it.get_type_extincteur_display() if it.type_extincteur else "",
+               it.get_format_display() if it.format else ""]
+    texte = " ".join(p for p in parties if p)
+    return escape(texte or it.modele or "—")
+
+
+def _html_legende_non_conformites():
+    """Légende bilingue sur 3 colonnes, comme sur le formulaire papier."""
+    cellules = "".join(
+        f"<div class='nc-item'><span class='nc-code'>{code}</span><b>{fr}</b> <b class='en'>/ {en}</b></div>"
+        for code, fr, en in LEGENDE_NON_CONFORMITES
+    )
+    return (
+        "<div class='legende-box'><div class='card-title' style='text-align:center;'>"
+        "Légende des non-conformités <span class='en'>/ Deficiencies legend</span></div>"
+        f"<div class='nc-grid'>{cellules}</div></div>"
+    )
+
+
+def _html_facturation_chantier(rapport, nb_extincteurs, date_insp, tech_noms):
+    """Blocs « Facturer à » (client) et « Lieu des travaux » (bâtiment)."""
+    bat = rapport.batiment
+    c = bat.client
+
+    def ligne(label, valeur, fort=False):
+        style = " style='font-weight:700;font-size:10pt;'" if fort else ""
+        return f"<tr><td class='lbl'>{label}</td><td{style}>{escape(valeur) if valeur else '—'}</td></tr>"
+
+    telephones = " · ".join(v for v in [c.contact_telephone, f"Cell. {c.contact_cellulaire}" if c.contact_cellulaire else ""] if v)
+    facturer = (
+        ligne("Nom <span class='en'>/ Name</span>", c.nom, fort=True)
+        + ligne("Adresse <span class='en'>/ Address</span>", c.adresse)
+        + ligne("Ville <span class='en'>/ City</span>", ", ".join(v for v in [c.ville, c.code_postal] if v))
+        + ligne("Contact", c.contact_nom)
+        + ligne("Tél. <span class='en'>/ Phone</span>", telephones)
+        + ligne("Courriel <span class='en'>/ E-mail</span>", c.contact_email)
+    )
+    chantier = (
+        ligne("Nom <span class='en'>/ Name</span>", bat.nom or bat.adresse_complete, fort=True)
+        + ligne("Adresse <span class='en'>/ Address</span>", f"{bat.numero_civique} {bat.rue}")
+        + ligne("Ville <span class='en'>/ City</span>", ", ".join(v for v in [bat.ville, bat.province, bat.code_postal] if v))
+        + ligne("Inspecteur <span class='en'>/ Inspector</span>", tech_noms)
+        + ligne("Date", date_insp)
+        + ligne("Extincteurs", f"{nb_extincteurs} extincteur{'s' if nb_extincteurs > 1 else ''}")
+    )
+    return f"""<div class="fact-grid">
+  <div class="fact-card"><div class="fact-head">Facturer à <span class="en">/ Bill to</span></div><table class="fact">{facturer}</table></div>
+  <div class="fact-card"><div class="fact-head">Lieu des travaux <span class="en">/ Job site</span></div><table class="fact">{chantier}</table></div>
+</div>"""
+
+
+def _html_badge_frequence(rapport):
+    """Pastille Mensuelle / Annuelle — l'option choisie est mise en avant."""
+    options = ""
+    for valeur, libelle in RapportExtincteur.Frequence.choices:
+        actif = rapport.frequence == valeur
+        style = "background:#e11324;color:#fff;" if actif else "color:rgba(255,255,255,0.45);"
+        coche = "&#10003; " if actif else ""
+        options += f"<span style='{style}padding:3px 10px;border-radius:100px;'>{coche}{libelle}</span>"
+    return (
+        "<div style='display:inline-flex;gap:2px;padding:2px;border:1px solid rgba(255,255,255,0.25);"
+        f"border-radius:100px;font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;'>{options}</div>"
+    )
 
 
 # ── Rapport extincteurs ─────────────────────────────────────────────────
@@ -368,7 +428,8 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
             # client/bâtiment rencontré directement chez le client) — il est
             # alors auto-assigné dessus, voir perform_create().
             return [permissions.IsAuthenticated(), EstSuperviseurOuTechnicien()]
-        if self.action in ["destroy", "update", "partial_update", "reassigner", "rouvrir"]:
+        if self.action in ["destroy", "update", "partial_update", "reassigner", "rouvrir",
+                           "importer_excel_apercu", "importer_excel"]:
             # Réassigner d'autres techniciens ou rouvrir un rapport fermé
             # restent réservés au superviseur.
             return [permissions.IsAuthenticated(), EstSuperviseur()]
@@ -434,6 +495,9 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
             # doit forcément en faire partie, personne d'autre ne le ferait.
             rapport.techniciens.add(self.request.user)
         rapport.historiser(self.request.user, "Rapport créé")
+
+        if not settings.MODULE_ECLAIRAGE:
+            return
 
         # Une inspection couvre extincteurs + éclairage d'urgence en même
         # temps — le rapport éclairage correspondant est donc créé et lié
@@ -527,10 +591,131 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
 
         serializer = ExtincteurItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        section = serializer.validated_data.get("section")
+        if section and section.rapport_id != rapport.id:
+            return Response({"error": "Cette section appartient à un autre rapport."}, status=status.HTTP_400_BAD_REQUEST)
         ordre = serializer.validated_data.get("ordre") or (rapport.extincteurs.count() + 1)
         serializer.save(rapport=rapport, ordre=ordre)
         rapport.historiser(request.user, "Extincteur ajouté")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get", "post"])
+    def sections(self, request, pk=None):
+        rapport = self.get_object()
+        if request.method == "GET":
+            return Response(SectionExtincteursSerializer(rapport.sections.all(), many=True).data)
+        if rapport.statut == RapportExtincteur.Statut.FERME and not request.user.est_superviseur():
+            return Response({"error": "Ce rapport est fermé."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = SectionExtincteursSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        dernier = rapport.sections.order_by("-ordre").first()
+        serializer.save(rapport=rapport, ordre=(dernier.ordre + 1) if dernier else 1)
+        rapport.historiser(request.user, f"Section « {serializer.data['nom']} » ajoutée")
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="importer-excel/apercu")
+    def importer_excel_apercu(self, request):
+        """Lit le classeur et renvoie ce qui serait importé, sans rien créer."""
+        from .excel_import import analyser_classeur
+
+        fichier = request.FILES.get("fichier")
+        if not fichier:
+            return Response({"error": "Aucun fichier reçu (champ « fichier »)."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            donnees = analyser_classeur(fichier)
+        except Exception as exc:
+            return Response({"error": f"Impossible de lire le fichier Excel : {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+        if not donnees["feuilles"]:
+            return Response(
+                {"error": "Aucune feuille d'extincteurs reconnue (en-tête « Numéro / Number … Emplacement » introuvable)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        for f in donnees["feuilles"]:
+            f["sections"] = [{"nom": x["nom"], "note": x["note"], "nb": len(x["extincteurs"])} for x in f["sections"]]
+        return Response(donnees)
+
+    @action(detail=False, methods=["post"], url_path="importer-excel")
+    def importer_excel(self, request):
+        """Crée un bâtiment (réutilisé s'il existe déjà sous ce nom chez le
+        client) et un rapport par feuille cochée, avec sections et extincteurs."""
+        import json
+
+        from django.db import transaction
+
+        from .excel_import import _adresse_en_parties, analyser_classeur
+
+        fichier = request.FILES.get("fichier")
+        try:
+            options = json.loads(request.data.get("options") or "{}")
+        except ValueError:
+            return Response({"error": "Options invalides."}, status=status.HTTP_400_BAD_REQUEST)
+        if not fichier:
+            return Response({"error": "Aucun fichier reçu (champ « fichier »)."}, status=status.HTTP_400_BAD_REQUEST)
+        frequence = options.get("frequence") or RapportExtincteur.Frequence.MENSUELLE
+        if frequence not in RapportExtincteur.Frequence.values:
+            return Response({"error": "Fréquence invalide."}, status=status.HTTP_400_BAD_REQUEST)
+        choix = {f["feuille"]: f for f in options.get("feuilles", []) if f.get("importer")}
+        if not choix:
+            return Response({"error": "Cochez au moins une zone à importer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            donnees = analyser_classeur(fichier)
+        except Exception as exc:
+            return Response({"error": f"Impossible de lire le fichier Excel : {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            if options.get("client_id"):
+                client = Client.objects.filter(pk=options["client_id"]).first()
+                if client is None:
+                    return Response({"error": "Client introuvable."}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                infos = {**donnees["client"], **(options.get("nouveau_client") or {})}
+                nom = (infos.get("nom") or "").strip()
+                if not nom:
+                    return Response({"error": "Indiquez le nom du client."}, status=status.HTTP_400_BAD_REQUEST)
+                if Client.objects.filter(nom__iexact=nom).exists():
+                    return Response({"error": f"Le client « {nom} » existe déjà — choisissez-le dans la liste."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                champs = ["adresse", "ville", "code_postal", "contact_nom", "contact_telephone", "contact_email"]
+                client = Client.objects.create(nom=nom, **{k: (infos.get(k) or "")[:Client._meta.get_field(k).max_length]
+                                                           for k in champs})
+
+            crees = []
+            for feuille in donnees["feuilles"]:
+                choisie = choix.get(feuille["feuille"])
+                if not choisie:
+                    continue
+                nom_lieu = (choisie.get("nom") or feuille["nom"]).strip()[:150]
+                batiment = Batiment.objects.filter(client=client, nom__iexact=nom_lieu).first()
+                if batiment is None:
+                    numero, rue = _adresse_en_parties(feuille["adresse"] or client.adresse)
+                    batiment = Batiment.objects.create(
+                        client=client, nom=nom_lieu, numero_civique=(numero or "—")[:10], rue=(rue or "—")[:200],
+                        ville=(feuille["ville"] or client.ville.split(",")[0] or "—")[:100],
+                        code_postal=feuille["code_postal"][:10], type_application="industriel",
+                    )
+                rapport = RapportExtincteur.objects.create(
+                    batiment=batiment, cree_par=request.user, frequence=frequence,
+                    date_inspection=options.get("date_inspection") or None,
+                )
+                items = []
+                ordre = 0
+                for i, sec in enumerate(feuille["sections"], start=1):
+                    section = SectionExtincteurs.objects.create(rapport=rapport, nom=sec["nom"], note=sec["note"], ordre=i)
+                    for ext in sec["extincteurs"]:
+                        ordre += 1
+                        items.append(ExtincteurItem(rapport=rapport, section=section, ordre=ordre, **ext))
+                ExtincteurItem.objects.bulk_create(items, batch_size=500)
+                rapport.historiser(
+                    request.user,
+                    f"Rapport importé depuis Excel ({getattr(fichier, 'name', 'fichier')} — feuille « {feuille['feuille']} », "
+                    f"{len(items)} extincteurs)"[:300],
+                )
+                crees.append({"id": rapport.id, "nom": nom_lieu, "nb_extincteurs": len(items),
+                              "nb_sections": len(feuille["sections"])})
+
+        return Response({"client": {"id": client.id, "nom": client.nom}, "rapports": crees},
+                        status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get", "post"])
     def boyaux(self, request, pk=None):
@@ -578,13 +763,13 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
         # ── Certificat unifié : une visite couvre extincteurs + éclairage
         # d'urgence en même temps, un seul certificat doit donc refléter
         # l'état des deux équipements (voir rapport_eclairage_lie).
-        rapport_eclairage = getattr(rapport, "rapport_eclairage_lie", None)
-        lumieres = list(rapport_eclairage.lumieres.all()) if rapport_eclairage else []
-
-        equipement_rows = (
-            _ligne_equipement_certificat("Extincteur", True, items)
-            + _ligne_equipement_certificat("Éclairage d'urgence", rapport_eclairage is not None, lumieres, defaut_en_so=True)
-        )
+        equipement_rows = _ligne_equipement_certificat("Extincteur", True, items)
+        if settings.MODULE_ECLAIRAGE:
+            rapport_eclairage = getattr(rapport, "rapport_eclairage_lie", None)
+            lumieres = list(rapport_eclairage.lumieres.all()) if rapport_eclairage else []
+            equipement_rows += _ligne_equipement_certificat(
+                "Éclairage d'urgence", rapport_eclairage is not None, lumieres, defaut_en_so=True
+            )
 
         return HttpResponse(
             _html_certificat_unifie(
@@ -603,14 +788,21 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
         techniciens = list(rapport.techniciens.all())
         tech_noms = ", ".join(t.get_full_name() or t.username for t in techniciens) or "—"
 
-        legende_rows = "".join(
-            f"<tr><td class='bold' style='width:50px;'>{code}</td><td>{desc}</td></tr>"
-            for code, desc in LEGENDE_EXTINCTEURS
-        )
-
         items = list(rapport.extincteurs.all())
+        sections = {sec.id: sec for sec in rapport.sections.all()}
+        if sections:
+            # Regroupe par section, dans l'ordre des sections du rapport.
+            rang = {sid: i for i, sid in enumerate(sections)}
+            items.sort(key=lambda it: (rang.get(it.section_id, len(rang)), it.ordre, it.id))
         item_rows = ""
+        section_courante = object()
         for it in items:
+            if sections and it.section_id != section_courante:
+                section_courante = it.section_id
+                sec = sections.get(it.section_id)
+                titre = escape(sec.nom) if sec else "Sans section"
+                note = f" <span style='font-weight:400;color:#92400e;'>— {escape(sec.note)}</span>" if sec and sec.note else ""
+                item_rows += f"<tr class='sec-row'><td colspan='13'>{titre}{note}</td></tr>"
             is_defect = it.etat == ExtincteurItem.Etat.DEFECTUEUX
             is_ni = not is_defect and it.etat == "NI"
             bg = ' style="background:#fef2f2;"' if is_defect else ' style="background:#fef3c7;"' if is_ni else ""
@@ -618,21 +810,23 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
             item_rows += (
                 f"<tr{bg}>"
                 f"<td class='center'>{it.ordre}</td>"
-                f"<td>{it.etage or '—'}</td>"
+                f"<td class='bold'>{escape(it.numero) or '—'}</td>"
                 f"<td>{it.emplacement or '—'}</td>"
-                f"<td class='center'>{it.get_type_extincteur_display() if it.type_extincteur else '—'}</td>"
-                f"<td class='center'>{it.get_format_display() if it.format else '—'}</td>"
-                f"<td>{it.get_marque_display() if it.marque else '—'}</td>"
+                f"<td class='mono'>{escape(it.code_equipement) or '—'}</td>"
+                f"<td>{_modele_extincteur(it)}</td>"
                 f"<td class='center'>{it.date_fabrication or '—'}</td>"
-                f"<td class='center'>{it.prochaine_maintenance or '—'}</td>"
-                f"<td class='center'>{it.prochain_test_hydrostatique or '—'}</td>"
                 f"<td>{escape(it.numero_serie) or '—'}</td>"
+                f"<td>{it.get_marque_display() if it.marque else '—'}</td>"
+                f"<td class='center'>{it.dernier_test_hydrostatique or '—'}</td>"
+                f"<td class='center'>{it.prochain_test_hydrostatique or '—'}</td>"
+                f"<td class='center'>{it.prochaine_maintenance or '—'}</td>"
                 f"<td class='center bold'{etat_style}>{it.etat or '—'}</td>"
-                f"<td>{it.remarque or ''}</td>"
+                f"<td>{''.join(f'<span class=nc-pill>{c}</span>' for c in it.non_conformites)}"
+                f"{' ' if it.non_conformites and it.remarque else ''}{escape(it.remarque or '')}</td>"
                 f"</tr>"
             )
         if not item_rows:
-            item_rows = "<tr><td colspan='12' class='muted center'>Aucun extincteur enregistré</td></tr>"
+            item_rows = "<tr><td colspan='13' class='muted center'>Aucun extincteur enregistré</td></tr>"
 
         boyaux = list(rapport.boyaux.all())
         boyau_rows = ""
@@ -644,7 +838,6 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
             boyau_rows += (
                 f"<tr{bg}>"
                 f"<td class='center'>{b.ordre}</td>"
-                f"<td>{b.etage or '—'}</td>"
                 f"<td>{b.emplacement or '—'}</td>"
                 f"<td class='center'>{b.get_longueur_display() if b.longueur else '—'}</td>"
                 f"<td class='center'>{b.date_fabrication or '—'}</td>"
@@ -654,7 +847,7 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
                 f"</tr>"
             )
         if not boyau_rows:
-            boyau_rows = "<tr><td colspan='8' class='muted center'>Aucun boyau enregistré</td></tr>"
+            boyau_rows = "<tr><td colspan='7' class='muted center'>Aucun boyau enregistré</td></tr>"
 
         logo_content = logo_wordmark_data_uri(46)
 
@@ -671,7 +864,8 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
   .brand{{ display:flex; align-items:center; gap:12px; }}
   .logo-box{{ height:46px; max-width:180px; display:flex; align-items:center; flex-shrink:0; }} .logo-box img{{ max-height:100%; max-width:100%; }}
   .brand-text h1{{ font-size:12pt; font-weight:900; color:#ffffff; text-transform:uppercase; }}
-  .brand-text p{{ font-size:7.5pt; color:rgba(255,255,255,0.7); margin-top:1px; }}
+  .brand-text{{ border-left:1px solid rgba(255,255,255,0.25); padding-left:12px; margin-left:8px; }}
+  .brand-text p{{ font-size:8.5pt; font-weight:600; color:rgba(255,255,255,0.85); }}
   .info-grid{{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }}
   .info-card{{ border:1px solid #ccc; border-radius:4px; padding:8px 12px; }}
   .card-title{{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#555; margin-bottom:4px; }}
@@ -680,11 +874,27 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
   .title-banner h2{{ font-size:11pt; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }}
   .sec-title{{ font-size:8.5pt; font-weight:700; text-transform:uppercase; color:#000; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:6px; margin-top:14px; }}
   table{{ width:100%; border-collapse:collapse; font-size:8pt; }}
-  th{{ background:#fef2f2; color:#000; font-weight:700; padding:4px 6px; text-align:left; font-size:7.5pt; border:1px solid #ccc; }}
+  th{{ background:#0a0b0d; color:#fff; font-weight:800; padding:5px 6px; text-align:left; font-size:7.5pt; border:1px solid #0a0b0d; text-transform:uppercase; letter-spacing:0.3px; }}
   td{{ padding:4px 6px; border:1px solid #ddd; color:#000; }}
   .center{{ text-align:center; }} .bold{{ font-weight:700; }} .muted{{ color:#777; font-style:italic; }}
   .legende-box{{ border:1px solid #999; border-radius:4px; padding:8px 10px; margin-bottom:10px; background:#fafafa; }}
   .legende-box table td{{ border:none; padding:2px 8px; font-size:8pt; }}
+  .en{{ color:#777; font-weight:400; }}
+  .th-en{{ font-size:6pt; font-weight:600; color:rgba(255,255,255,0.65); text-transform:none; letter-spacing:0; }}
+  tr.sec-row td{{ background:#f3f4f6; font-weight:800; font-size:8pt; text-transform:uppercase; letter-spacing:0.3px; border-top:2px solid #0a0b0d; }}
+  .mono{{ font-family:Consolas,'Courier New',monospace; font-size:7.5pt; white-space:nowrap; }}
+  .nc-grid{{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px 14px; margin-top:6px; }}
+  .nc-item{{ font-size:7.5pt; display:flex; align-items:center; gap:6px; }}
+  .nc-item b{{ color:#0a0b0d; font-weight:800; }} .nc-item b.en{{ color:#555; font-weight:700; }}
+  .nc-code{{ display:inline-block; min-width:38px; text-align:center; font-weight:800; font-size:7pt; color:#e11324; background:#fee2e2; border:1px solid #fecaca; border-radius:100px; padding:1px 6px; }}
+  .nc-pill{{ display:inline-block; font-weight:800; font-size:6.5pt; color:#e11324; background:#fee2e2; border:1px solid #fecaca; border-radius:100px; padding:0 5px; margin:1px; }}
+  .fact-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }}
+  .fact-card{{ border:1px solid #0a0b0d; border-radius:6px; overflow:hidden; }}
+  .fact-head{{ background:#0a0b0d; color:#fff; padding:5px 10px; font-size:7.5pt; font-weight:800; text-transform:uppercase; letter-spacing:1px; }}
+  .fact-head .en{{ color:rgba(255,255,255,0.5); }}
+  table.fact td{{ border:none; border-bottom:1px solid #f3f4f6; padding:3px 10px; font-size:8pt; }}
+  table.fact td.lbl{{ width:38%; color:#0a0b0d; font-size:7.5pt; font-weight:800; }}
+  table.fact td.lbl .en{{ font-weight:600; }}
   .footer{{ margin-top:20px; padding-top:8px; border-top:1px solid #ccc; display:flex; justify-content:space-between; font-size:7pt; color:#555; }}
   @media print{{ body{{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }} .no-print{{ display:none!important; }} }}
 </style>
@@ -698,43 +908,38 @@ class RapportExtincteurViewSet(viewsets.ModelViewSet):
   <div class="brand">
     <div class="logo-box">{logo_content}</div>
     <div class="brand-text">
-      <h1>Extincteur<span style="color:#e11324;">GP</span><span style="font-weight:400;">inc</span></h1>
       <p>Rapport de vérification — Extincteurs portatifs</p>
     </div>
   </div>
   <div style="text-align:right;">
+    <div style="margin-bottom:5px;">{_html_badge_frequence(rapport)}</div>
     <div style="font-size:8pt;font-weight:700;text-transform:uppercase;color:{'#4ade80' if rapport.statut == 'ferme' else '#f87171'};">{rapport.get_statut_display()}</div>
     <div style="font-size:7.5pt;color:rgba(255,255,255,0.7);margin-top:4px;">Date d'inspection : <strong style="color:#fff;">{date_insp}</strong></div>
     <div style="font-size:7.5pt;color:rgba(255,255,255,0.7);margin-top:1px;">Technicien(s) : <strong style="color:#fff;">{tech_noms}</strong></div>
   </div>
 </div>
 <div class="title-banner"><h2>Rapport de vérification — Extincteurs portatifs</h2></div>
-<div style="text-align:left;margin-bottom:8px;">
-  <div class="card-title">Client</div>
-  <div class="card-main" style="font-size:11pt;">{bat.client.nom}</div>
-</div>
-<div class="info-card" style="text-align:center;margin-bottom:18px;">
-  <div class="card-title">Adresse</div>
-  <div class="card-main" style="font-size:14pt;">{adresse}</div>
-</div>
-<div class="legende-box">
-<table><tbody>{legende_rows}</tbody></table>
-</div>
+{_html_facturation_chantier(rapport, len(items), date_insp, tech_noms)}
+{_html_legende_non_conformites()}
 <div class="sec-title">Détail des extincteurs</div>
 <table>
   <thead><tr>
-    <th>No</th><th>Étage</th><th>Emplacement</th><th>Type</th><th>Format</th>
-    <th>Marque</th><th>Date fabrication</th><th>Prochaine maintenance</th>
-    <th>Prochain test hydro.</th><th>N° série</th><th title="D=Défectueux, C=Conforme, NI=Non inspecté">État</th><th>Remarque</th>
+    <th>No</th><th>Numéro<br><span class='th-en'>Number</span></th><th>Emplacement<br><span class='th-en'>Location</span></th>
+    <th>Équipement</th><th>Modèle<br><span class='th-en'>Model</span></th><th>Année fabrication<br><span class='th-en'>Year</span></th>
+    <th>Num. de série<br><span class='th-en'>Serial Num.</span></th><th>Marque<br><span class='th-en'>Brand</span></th>
+    <th>Dernier test hydro<br><span class='th-en'>Last test</span></th><th>Prochain test hydro<br><span class='th-en'>Next test</span></th>
+    <th>Prochain entret.<br><span class='th-en'>Next maint.</span></th>
+    <th title="D=Défectueux, C=Conforme, NI=Non inspecté">État<br><span class='th-en'>Status</span></th>
+    <th>Non-conformités<br><span class='th-en'>Deficiencies</span></th>
   </tr></thead>
   <tbody>{item_rows}</tbody>
 </table>
 <div class="sec-title">Détail des boyaux</div>
 <table>
   <thead><tr>
-    <th>No</th><th>Étage</th><th>Emplacement</th><th>Longueur</th>
+    <th>No</th><th>Emplacement</th><th>Longueur</th>
     <th>Date fabrication</th><th>Prochain test hydro.</th>
-    <th title="D=Défectueux, C=Conforme, NI=Non inspecté">État</th><th>Remarque</th>
+    <th title="D=Défectueux, C=Conforme, NI=Non inspecté">État</th><th>Non-conformités</th>
   </tr></thead>
   <tbody>{boyau_rows}</tbody>
 </table>
@@ -764,6 +969,36 @@ class ExtincteurItemViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Le rapport associé est fermé.")
         serializer.save()
+
+
+class SectionExtincteursViewSet(viewsets.ModelViewSet):
+    """Renommer, changer la note ou supprimer une section — ses extincteurs
+    restent dans le rapport, sans section."""
+
+    serializer_class = SectionExtincteursSerializer
+    permission_classes = [permissions.IsAuthenticated, EstSuperviseurOuTechnicien]
+    http_method_names = ["get", "patch", "delete"]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = SectionExtincteurs.objects.select_related("rapport")
+        if user.est_technicien():
+            qs = qs.filter(rapport__techniciens=user)
+        return qs.distinct()
+
+    def _verifier_ouvert(self, section):
+        if section.rapport.statut == RapportExtincteur.Statut.FERME and not self.request.user.est_superviseur():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Le rapport associé est fermé.")
+
+    def perform_update(self, serializer):
+        self._verifier_ouvert(self.get_object())
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._verifier_ouvert(instance)
+        instance.rapport.historiser(self.request.user, f"Section « {instance.nom} » supprimée")
+        instance.delete()
 
 
 class BoyauItemViewSet(viewsets.ModelViewSet):
@@ -801,7 +1036,7 @@ def _certificats_extincteur():
         resultats.append({
             "cle": f"extincteur-{c.id}",
             "type": "extincteur",
-            "type_display": "Extincteur & éclairage",
+            "type_display": "Extincteur & éclairage" if settings.MODULE_ECLAIRAGE else "Extincteurs",
             "numero": c.numero,
             "date_emission": c.date_emission,
             "certificat_envoye": c.certificat_envoye,

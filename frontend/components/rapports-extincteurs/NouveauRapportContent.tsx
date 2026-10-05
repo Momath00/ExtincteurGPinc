@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { clientColor } from '@/lib/clientColor'
+import FrequenceSelector from './FrequenceSelector'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
@@ -26,6 +27,7 @@ export default function NouveauRapportContent() {
   const [technicienIds, setTechnicienIds] = useState<number[]>([])
   const [dateInspection, setDateInspection] = useState('')
   const [numeroJob, setNumeroJob] = useState('')
+  const [frequence, setFrequence] = useState('annuelle')
 
   const [loadingBatiments, setLoadingBatiments] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -102,6 +104,7 @@ export default function NouveauRapportContent() {
           techniciens: technicienIds,
           date_inspection: dateInspection || null,
           numero_job: numeroJob,
+          frequence,
         }),
       })
       const data = await res.json() as any
@@ -179,7 +182,7 @@ export default function NouveauRapportContent() {
             >
               <option value="">— Sélectionner —</option>
               {batiments.map((b: any) => (
-                <option key={b.id} value={b.id}>{b.adresse_complete}</option>
+                <option key={b.id} value={b.id}>{b.nom ? `${b.nom} — ${b.adresse_complete}` : b.adresse_complete}</option>
               ))}
             </select>
           )}
@@ -242,7 +245,14 @@ export default function NouveauRapportContent() {
 
         <div>
           <label className="text-xs font-bold uppercase tracking-widest mb-2 block" style={{ color: NAVY }}>
-            {isTechnicien ? '3' : '5'}. Date d'inspection
+            {isTechnicien ? '3' : '5'}. Fréquence d'inspection
+          </label>
+          <FrequenceSelector valeur={frequence} onChange={setFrequence} />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-widest mb-2 block" style={{ color: NAVY }}>
+            {isTechnicien ? '4' : '6'}. Date d'inspection
           </label>
           <input
             type="date"
@@ -254,7 +264,7 @@ export default function NouveauRapportContent() {
 
         <div>
           <label className="text-xs font-bold uppercase tracking-widest mb-2 block" style={{ color: NAVY }}>
-            {isTechnicien ? '4' : '6'}. Numéro de job <span className="text-gray-300 normal-case font-normal">(optionnel)</span>
+            {isTechnicien ? '5' : '7'}. Numéro de job <span className="text-gray-300 normal-case font-normal">(optionnel)</span>
           </label>
           <input
             type="text"

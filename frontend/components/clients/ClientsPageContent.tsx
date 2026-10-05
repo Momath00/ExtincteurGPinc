@@ -13,7 +13,10 @@ function ClientModal({ client, onClose, onSaved }: { client: any; onClose: () =>
   const [contactNom, setContactNom] = useState(client?.contact_nom || '')
   const [email, setEmail] = useState(client?.contact_email || '')
   const [telephone, setTelephone] = useState(client?.contact_telephone || '')
+  const [cellulaire, setCellulaire] = useState(client?.contact_cellulaire || '')
   const [adresse, setAdresse] = useState(client?.adresse || '')
+  const [ville, setVille] = useState(client?.ville || '')
+  const [codePostal, setCodePostal] = useState(client?.code_postal || '')
   const [modeLivraison, setModeLivraison] = useState(client?.mode_livraison || 'plateforme')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -30,7 +33,8 @@ function ClientModal({ client, onClose, onSaved }: { client: any; onClose: () =>
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           nom, contact_nom: contactNom, contact_email: email,
-          contact_telephone: telephone, adresse, mode_livraison: modeLivraison,
+          contact_telephone: telephone, contact_cellulaire: cellulaire,
+          adresse, ville, code_postal: codePostal, mode_livraison: modeLivraison,
         }),
       })
       const data = await res.json() as any
@@ -47,7 +51,7 @@ function ClientModal({ client, onClose, onSaved }: { client: any; onClose: () =>
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div className="relative bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: NAVY }}>
             {client ? 'Modifier le client' : 'Nouveau client'}
@@ -83,9 +87,28 @@ function ClientModal({ client, onClose, onSaved }: { client: any; onClose: () =>
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>Adresse</label>
-            <input value={adresse} onChange={e => setAdresse(e.target.value)} placeholder="123 rue Principale, Montréal, QC"
+            <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>Cellulaire</label>
+            <input value={cellulaire} onChange={e => setCellulaire(e.target.value)} placeholder="514-000-0000"
               className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>
+              Adresse de facturation
+            </label>
+            <input value={adresse} onChange={e => setAdresse(e.target.value)} placeholder="1625 route Marie-Victorin"
+              className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>Ville</label>
+              <input value={ville} onChange={e => setVille(e.target.value)} placeholder="Sorel-Tracy, QC"
+                className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>Code postal</label>
+              <input value={codePostal} onChange={e => setCodePostal(e.target.value.toUpperCase())} placeholder="J3R 1M6" maxLength={10}
+                className="w-28 border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
+            </div>
           </div>
 
           <div>
@@ -235,13 +258,13 @@ export default function ClientsPageContent() {
             ))}
           </div>
           <div className="relative flex-1 sm:max-w-xs">
-            <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm" />
+            <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
             <input
               type="text"
               value={recherche}
               onChange={e => setRecherche(e.target.value)}
               placeholder="Rechercher nom, contact, courriel..."
-              className="w-full pl-8 pr-8 py-2 text-sm border border-gray-100 rounded-md focus:outline-none focus:border-[#dc2626] bg-white"
+              className="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-[#dc2626] bg-white placeholder:text-gray-400"
             />
             {recherche && (
               <button onClick={() => setRecherche('')}

@@ -8,6 +8,7 @@ from .views import (
     ClientViewSet,
     ExtincteurItemViewSet,
     RapportExtincteurViewSet,
+    SectionExtincteursViewSet,
 )
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register(r"batiments", BatimentViewSet, basename="batiment")
 router.register(r"rapports-extincteurs", RapportExtincteurViewSet, basename="rapport-extincteur")
 router.register(r"extincteurs", ExtincteurItemViewSet, basename="extincteur")
 router.register(r"boyaux", BoyauItemViewSet, basename="boyau")
+router.register(r"sections-extincteurs", SectionExtincteursViewSet, basename="section-extincteurs")
 
 # Routes générées, à titre de référence :
 # GET/POST    /api/clients/                              → liste / créer un client (superviseur)

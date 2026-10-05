@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { YearMaskInput, ScrollableTable } from './TableExtincteurs'
+import { YearMaskInput, ScrollableTable, TH_ROW, TH_BG } from './TableExtincteurs'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
@@ -61,7 +61,7 @@ function LigneBoyau({
         defaultValue={it[field] || ''}
         onBlur={e => patchField(field, e.target.value)}
         placeholder={placeholder}
-        className={`${width} text-xs border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-orange-300 rounded px-1 py-0.5`}
+        className={`${width} text-xs border-2 border-[#0a0b0d] bg-white focus:outline-none focus:border-[#dc2626] rounded px-1.5 py-0.5`}
         style={{ color: NAVY }}
       />
     )
@@ -94,7 +94,7 @@ function LigneBoyau({
       <select
         value={it.etat || ''}
         onChange={e => patchField('etat', e.target.value || null)}
-        className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:border-[#dc2626] bg-white w-full"
+        className="text-xs border-2 border-[#0a0b0d] rounded px-1 py-0.5 focus:outline-none focus:border-[#dc2626] bg-white w-full"
       >
         <option value="">-</option>
         <option value="D">D</option>
@@ -111,7 +111,7 @@ function LigneBoyau({
       <select
         value={it[field] || ''}
         onChange={e => patchField(field, e.target.value)}
-        className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:border-[#dc2626] bg-white w-full"
+        className="text-xs border-2 border-[#0a0b0d] rounded px-1 py-0.5 focus:outline-none focus:border-[#dc2626] bg-white w-full"
       >
         <option value="">—</option>
         {Object.entries(choices).map(([k, v]) => (
@@ -137,13 +137,12 @@ function LigneBoyau({
         } : {}}
       >
         <td className="px-2 py-2 text-center text-xs text-gray-400">{it.ordre}</td>
-        <td className="px-2 py-2">{textInput('etage', 'Étage', 'w-full min-w-[70px]')}</td>
         <td className="px-2 py-2">{textInput('emplacement', 'Emplacement', 'w-full min-w-[110px]')}</td>
         <td className="px-2 py-2">{selectInput('longueur', LONGUEUR_CHOICES)}</td>
         <td className="px-2 py-2">{yearInput('date_fabrication')}</td>
         <td className="px-2 py-2">{yearInput('prochain_test_hydrostatique')}</td>
         <td className="px-2 py-2">{etatInput()}</td>
-        <td className="px-2 py-2">{textInput('remarque', 'Remarque...', 'w-full min-w-[120px]')}</td>
+        <td className="px-2 py-2">{textInput('remarque', 'Écrire une non-conformité…', 'w-full min-w-[200px]')}</td>
         {!readOnly && (
           <td className="px-2 py-2 text-center">
             <button
@@ -157,7 +156,7 @@ function LigneBoyau({
       </tr>
       {confirmDelete && (
         <tr>
-          <td colSpan={readOnly ? 8 : 9}>
+          <td colSpan={readOnly ? 7 : 8}>
             <div className="flex items-center gap-3 px-4 py-2.5 bg-red-50 text-xs border-t border-red-100">
               <i className="ti ti-alert-circle text-red-500" />
               <span className="text-red-700 font-semibold">Supprimer cette ligne ?</span>
@@ -182,10 +181,12 @@ export default function TableBoyaux({
   rapport,
   readOnly,
   onRefresh,
+  onItemChange,
 }: {
   rapport: any
   readOnly: boolean
   onRefresh: () => void
+  onItemChange?: (id: number, field: string, value: any) => void
 }) {
   const [items, setItems] = useState<any[]>(rapport.boyaux || [])
   const [adding, setAdding] = useState(false)
@@ -194,6 +195,7 @@ export default function TableBoyaux({
 
   function updateLocal(id: number, field: string, value: any) {
     setItems(prev => prev.map(it => it.id === id ? { ...it, [field]: value } : it))
+    onItemChange?.(id, field, value)
   }
 
   async function ajouterLigne() {
@@ -254,15 +256,14 @@ export default function TableBoyaux({
           <ScrollableTable>
             <table className="w-full text-sm min-w-[860px]">
               <thead>
-                <tr className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-50">
+                <tr className={TH_ROW} style={TH_BG}>
                   <th className="text-center px-2 py-2.5 w-10">No</th>
-                  <th className="text-left px-2 py-2.5">Étage</th>
                   <th className="text-left px-2 py-2.5">Emplacement</th>
                   <th className="text-left px-2 py-2.5">Longueur</th>
                   <th className="text-left px-2 py-2.5">Date fabrication</th>
                   <th className="text-left px-2 py-2.5">Prochain test hydro.</th>
                   <th className="text-center px-2 py-2.5" title="D=Défectueux, C=Conforme, NI=Non inspecté">État</th>
-                  <th className="text-left px-2 py-2.5">Remarque</th>
+                  <th className="text-left px-2 py-2.5">Non-conformités</th>
                   {!readOnly && <th className="px-2 py-2.5 w-10" />}
                 </tr>
               </thead>

@@ -14,12 +14,23 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
+
+
+def config_publique(request):
+    """Modules activés — lu par le frontend pour afficher ou masquer les menus."""
+    return JsonResponse({"module_eclairage": settings.MODULE_ECLAIRAGE})
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/config/', config_publique, name='config_publique'),
     path('api/', include('api.urls')),
     path('api/', include('inspections.urls')),
-    path('api/', include('eclairage.urls')),
 ]
+
+if settings.MODULE_ECLAIRAGE:
+    urlpatterns.append(path('api/', include('eclairage.urls')))

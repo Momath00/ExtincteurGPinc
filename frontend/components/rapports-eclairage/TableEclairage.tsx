@@ -151,7 +151,6 @@ function LigneEclairage({
         } : {}}
       >
         <td className="px-2 py-2 text-center text-xs text-gray-400">{it.ordre}</td>
-        <td className="px-2 py-2">{textInput('etage', 'Étage', 'w-full min-w-[70px]')}</td>
         <td className="px-2 py-2">{textInput('emplacement', 'Emplacement', 'w-full min-w-[120px]')}</td>
         <td className="px-2 py-2">{textInput('modele', 'Modèle', 'w-full min-w-[100px]')}</td>
         <td className="px-2 py-2">{textInput('voltage', 'Voltage', 'w-full min-w-[80px]')}</td>
@@ -170,7 +169,7 @@ function LigneEclairage({
       </tr>
       {confirmDelete && (
         <tr>
-          <td colSpan={readOnly ? 7 : 8}>
+          <td colSpan={readOnly ? 6 : 7}>
             <div className="flex items-center gap-3 px-4 py-2.5 bg-red-50 text-xs border-t border-red-100">
               <i className="ti ti-alert-circle text-red-500" />
               <span className="text-red-700 font-semibold">Supprimer cette ligne ?</span>
@@ -291,7 +290,6 @@ export default function TableEclairage({
               <thead>
                 <tr className="text-[10px] font-bold uppercase tracking-widest text-red-400 bg-red-50">
                   <th className="text-left px-4 py-2.5">No</th>
-                  <th className="text-left px-3 py-2.5">Étage</th>
                   <th className="text-left px-3 py-2.5">Emplacement</th>
                   <th className="text-left px-3 py-2.5">Remarque</th>
                 </tr>
@@ -301,9 +299,6 @@ export default function TableEclairage({
                   <tr key={it.id} className={`border-t border-red-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-red-50/30'}`}>
                     <td className="px-4 py-2.5">
                       <span className="text-xs text-gray-500 font-medium">{it.ordre}</span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="text-xs text-gray-500">{it.etage || '—'}</span>
                     </td>
                     <td className="px-3 py-2.5">
                       <span className="text-sm font-bold" style={{ color: '#dc2626' }}>{it.emplacement || '—'}</span>
@@ -342,7 +337,6 @@ export default function TableEclairage({
               <thead>
                 <tr className="text-[10px] font-bold uppercase tracking-widest bg-amber-50" style={{ color: '#d0a24c' }}>
                   <th className="text-left px-4 py-2.5">No</th>
-                  <th className="text-left px-3 py-2.5">Étage</th>
                   <th className="text-left px-3 py-2.5">Emplacement</th>
                   <th className="text-left px-3 py-2.5">Statut</th>
                 </tr>
@@ -352,9 +346,6 @@ export default function TableEclairage({
                   <tr key={it.id} className={`border-t ${idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`} style={{ borderColor: '#fef3c7' }}>
                     <td className="px-4 py-2.5">
                       <span className="text-xs text-gray-500 font-medium">{it.ordre}</span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="text-xs text-gray-500">{it.etage || '—'}</span>
                     </td>
                     <td className="px-3 py-2.5">
                       <span className="text-sm font-bold" style={{ color: '#b45309' }}>{it.emplacement || '—'}</span>
@@ -395,7 +386,6 @@ export default function TableEclairage({
               <thead>
                 <tr className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-50">
                   <th className="text-center px-2 py-2.5 w-10">No</th>
-                  <th className="text-left px-2 py-2.5">Étage</th>
                   <th className="text-left px-2 py-2.5">Emplacement</th>
                   <th className="text-left px-2 py-2.5">Modèle</th>
                   <th className="text-left px-2 py-2.5">Voltage</th>

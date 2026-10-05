@@ -7,6 +7,7 @@ boyaux, éclairage d'urgence) — certains fermés avec certificat.
 import random
 from datetime import date
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -147,6 +148,10 @@ class Command(BaseCommand):
             )
 
         # Comme RapportExtincteurViewSet.perform_create : rapport éclairage lié.
+        if not settings.MODULE_ECLAIRAGE:
+            if fermer:
+                rapport.fermer(tech)
+            return
         eclairage = RapportEclairage.objects.create(
             batiment=bat, cree_par=sup, numero_job=rapport.numero_job,
             date_inspection=rapport.date_inspection, rapport_extincteur=rapport,

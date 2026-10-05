@@ -7,10 +7,17 @@ import TableExtincteurs from '@/components/rapports-extincteurs/TableExtincteurs
 import TableBoyaux from '@/components/rapports-extincteurs/TableBoyaux'
 import ModalModifierRapport from '@/components/rapports/ModalModifierRapport'
 import EnvoiDirectBanner from '@/components/rapports/EnvoiDirectBanner'
+import FrequenceSelector from '@/components/rapports-extincteurs/FrequenceSelector'
+import BlocFacturationChantier from '@/components/rapports-extincteurs/BlocFacturationChantier'
+import OngletDeficiences from '@/components/rapports-extincteurs/OngletDeficiences'
+import { estEnDeficience } from '@/lib/nonConformites'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
 const ORANGE = '#dc2626'
+
+// Boutons d'action de l'en-tête : fond plein, texte blanc, léger relief au survol.
+const BOUTON_ACTION = 'text-sm font-bold px-4 py-2.5 rounded-md flex items-center gap-2 text-white shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0'
 
 async function downloadHtml(url: string) {
   const token = localStorage.getItem('access_token')
@@ -123,7 +130,7 @@ function CertificatTab({
   )
 }
 
-type OngletType = 'extincteurs' | 'certificat' | 'historique'
+type OngletType = 'extincteurs' | 'deficiences' | 'certificat' | 'historique'
 
 export default function SuperviseurRapportExtincteurDetailPage() {
   const router = useRouter()
@@ -153,6 +160,11 @@ export default function SuperviseurRapportExtincteurDetailPage() {
   }
 
   useEffect(() => { charger() }, [params.id])
+
+  // Une ligne modifiée dans un tableau → même valeur dans le rapport, pour que
+  // l'onglet Déficiences et les compteurs suivent sans recharger.
+  const majLigne = (liste: 'extincteurs' | 'boyaux') => (id: number, field: string, value: any) =>
+    setRapport((r: any) => r && ({ ...r, [liste]: r[liste].map((it: any) => it.id === id ? { ...it, [field]: value } : it) }))
 
   function showToast(msg: string, type: 'success' | 'error') {
     setToast({ msg, type })
@@ -214,6 +226,23 @@ export default function SuperviseurRapportExtincteurDetailPage() {
     }
   }
 
+  async function changerFrequence(frequence: string) {
+    const avant = rapport.frequence
+    setRapport({ ...rapport, frequence })
+    const token = localStorage.getItem('access_token')
+    const res = await fetch(`${API_URL}/api/rapports-extincteurs/${rapport.id}/`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frequence }),
+    })
+    if (res.ok) {
+      showToast(`Inspection ${frequence === 'mensuelle' ? 'mensuelle' : 'annuelle'}.`, 'success')
+    } else {
+      setRapport((r: any) => ({ ...r, frequence: avant }))
+      showToast('Impossible de changer la fréquence.', 'error')
+    }
+  }
+
   if (loading || !rapport) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -224,9 +253,12 @@ export default function SuperviseurRapportExtincteurDetailPage() {
   }
 
   const estFerme = rapport.statut === 'ferme'
+  const nbDeficiences = (rapport.extincteurs || []).filter(estEnDeficience).length
+    + (rapport.boyaux || []).filter(estEnDeficience).length
 
   const onglets: { key: OngletType; label: string; shortLabel: string }[] = [
     { key: 'extincteurs', label: `Extincteurs (${rapport.extincteurs?.length || 0})`, shortLabel: `Extincteurs (${rapport.extincteurs?.length || 0})` },
+    { key: 'deficiences', label: `Déficiences (${nbDeficiences})`, shortLabel: `Déf. (${nbDeficiences})` },
     ...(estFerme ? [{ key: 'certificat' as OngletType, label: '🏆 Certificat', shortLabel: '🏆' }] : []),
     { key: 'historique', label: `Historique (${rapport.historique?.length || 0})`, shortLabel: `Hist. (${rapport.historique?.length || 0})` },
   ]
@@ -262,7 +294,7 @@ export default function SuperviseurRapportExtincteurDetailPage() {
           </p>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold" style={{ color: NAVY }}>
-              {rapport.batiment?.adresse_complete}
+              {rapport.batiment?.nom || rapport.batiment?.adresse_complete || '—'}
             </h1>
             <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
               style={estFerme
@@ -275,10 +307,18 @@ export default function SuperviseurRapportExtincteurDetailPage() {
             {[
               rapport.numero_job ? `Job ${rapport.numero_job}` : '',
               rapport.date_inspection
-                ? new Date(rapport.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'long' })
+                ? new Date(rapport.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'long' })
                 : '',
             ].filter(Boolean).join(' · ')}
           </p>
+          {rapport.batiment?.nom && (
+            <p className="text-sm font-semibold flex items-center gap-1 mt-0.5" style={{ color: NAVY }}>
+              <i className="ti ti-map-pin" style={{ color: ORANGE }} /> {rapport.batiment.adresse_complete}
+            </p>
+          )}
+          <div className="mt-2">
+            <FrequenceSelector compact valeur={rapport.frequence} onChange={changerFrequence} />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
@@ -308,8 +348,8 @@ export default function SuperviseurRapportExtincteurDetailPage() {
             <button
               onClick={() => setConfirmRouvrir(true)}
               disabled={actionLoading}
-              className="text-sm font-bold px-4 py-2.5 rounded-md flex items-center gap-2 border-2 disabled:opacity-50 hover:bg-gray-50 transition-colors"
-              style={{ borderColor: NAVY, color: NAVY }}
+              className={BOUTON_ACTION}
+              style={{ background: '#475569' }}
             >
               <i className="ti ti-lock-open" /> Rouvrir le rapport
             </button>
@@ -319,16 +359,16 @@ export default function SuperviseurRapportExtincteurDetailPage() {
             <>
               <button
                 onClick={() => downloadHtml(`${API_URL}/api/rapports-extincteurs/${rapport.id}/telecharger/`)}
-                className="text-sm font-bold px-4 py-2.5 rounded-md border-2 flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                style={{ borderColor: NAVY, color: NAVY }}
+                className={BOUTON_ACTION}
+                style={{ background: '#0a0b0d' }}
               >
                 <i className="ti ti-file-download" /> Rapport
               </button>
               {rapport.certificat && (
                 <button
                   onClick={() => downloadHtml(`${API_URL}/api/rapports-extincteurs/${rapport.id}/certificat-pdf/`)}
-                  className="text-sm font-bold px-4 py-2.5 rounded-md border-2 flex items-center gap-2 hover:bg-orange-50 transition-colors"
-                  style={{ borderColor: ORANGE, color: ORANGE }}
+                  className={BOUTON_ACTION}
+                  style={{ background: ORANGE }}
                 >
                   <i className="ti ti-certificate" /> Certificat
                 </button>
@@ -372,6 +412,8 @@ export default function SuperviseurRapportExtincteurDetailPage() {
           onSaved={() => { charger(); showToast('Modification faite avec succès', 'success') }}
         />
       )}
+
+      <BlocFacturationChantier rapport={rapport} />
 
       <div className="bg-white rounded-md border border-gray-100 p-4 mb-6 flex items-center gap-3 flex-wrap">
         <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Techniciens</span>
@@ -432,10 +474,12 @@ export default function SuperviseurRapportExtincteurDetailPage() {
 
       {onglet === 'extincteurs' && (
         <div className="flex flex-col gap-6">
-          <TableExtincteurs rapport={rapport} readOnly={false} onRefresh={charger} />
-          <TableBoyaux rapport={rapport} readOnly={false} onRefresh={charger} />
+          <TableExtincteurs rapport={rapport} readOnly={false} onRefresh={charger} onItemChange={majLigne('extincteurs')} />
+          <TableBoyaux rapport={rapport} readOnly={false} onRefresh={charger} onItemChange={majLigne('boyaux')} />
         </div>
       )}
+
+      {onglet === 'deficiences' && <OngletDeficiences rapport={rapport} />}
 
       {onglet === 'certificat' && estFerme && (
         <CertificatTab rapport={rapport} onEnvoyer={envoyerCertificat} actionLoading={actionLoading} />

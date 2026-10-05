@@ -16,10 +16,12 @@ const TYPE_LABELS: Record<string, string> = {
 
 function BatimentModal({ batiment, clients, citoyens, showProprietaire, onClose, onSaved }: any) {
   const [clientId, setClientId] = useState(batiment?.client || '')
+  const [nomLieu, setNomLieu] = useState(batiment?.nom || '')
   const [numeroCivique, setNumeroCivique] = useState(batiment?.numero_civique || '')
   const [rue, setRue] = useState(batiment?.rue || '')
   const [ville, setVille] = useState(batiment?.ville || '')
   const [codePostal, setCodePostal] = useState(batiment?.code_postal || '')
+  const [province, setProvince] = useState(batiment?.province ?? 'Québec')
   const [direction, setDirection] = useState(batiment?.direction || '')
   const [typeApplication, setTypeApplication] = useState(batiment?.type_application || 'residentiel')
   const [proprietaireId, setProprietaireId] = useState(batiment?.proprietaire?.id || '')
@@ -38,7 +40,7 @@ function BatimentModal({ batiment, clients, citoyens, showProprietaire, onClose,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           client: Number(clientId),
-          numero_civique: numeroCivique, rue, ville, code_postal: codePostal,
+          nom: nomLieu, numero_civique: numeroCivique, rue, ville, province, code_postal: codePostal,
           direction, type_application: typeApplication,
           proprietaire_id: proprietaireId ? Number(proprietaireId) : null,
         }),
@@ -77,6 +79,14 @@ function BatimentModal({ batiment, clients, citoyens, showProprietaire, onClose,
             </select>
           </div>
 
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>
+              Nom du lieu <span className="text-gray-300 normal-case font-normal">(optionnel — ex. Zone 100)</span>
+            </label>
+            <input value={nomLieu} onChange={e => setNomLieu(e.target.value)} placeholder="Zone 100"
+              className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>No civique</label>
@@ -90,10 +100,15 @@ function BatimentModal({ batiment, clients, citoyens, showProprietaire, onClose,
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>Ville</label>
               <input value={ville} onChange={e => setVille(e.target.value)} placeholder="Montréal" required
+                className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest mb-1.5 block" style={{ color: NAVY }}>Province</label>
+              <input value={province} onChange={e => setProvince(e.target.value)} placeholder="Québec"
                 className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-[#dc2626]" />
             </div>
             <div>
@@ -150,6 +165,7 @@ export default function BatimentsPageContent() {
   const [clients, setClients] = useState<any[]>([])
   const [citoyens, setCitoyens] = useState<any[]>([])
   const [filtreClient, setFiltreClient] = useState('')
+  const [recherche, setRecherche] = useState('')
   const [loading, setLoading] = useState(true)
   const [modalBatiment, setModalBatiment] = useState<any>(undefined)
   const [supprimerId, setSupprimerId] = useState<number | null>(null)
@@ -192,7 +208,13 @@ export default function BatimentsPageContent() {
     charger()
   }
 
-  const visibles = filtreClient ? batiments.filter(b => String(b.client) === filtreClient) : batiments
+  const visibles = batiments.filter(b => {
+    if (filtreClient && String(b.client) !== filtreClient) return false
+    const q = recherche.trim().toLowerCase()
+    if (!q) return true
+    return [b.adresse_complete, b.code_postal, b.client_nom, b.direction, b.proprietaire?.username]
+      .some(v => (v || '').toLowerCase().includes(q))
+  })
 
   if (loading) {
     return (
@@ -233,6 +255,25 @@ export default function BatimentsPageContent() {
         </div>
       )}
 
+      {batiments.length > 0 && (
+        <div className="relative mb-3 sm:max-w-xs">
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          <input
+            type="text"
+            value={recherche}
+            onChange={e => setRecherche(e.target.value)}
+            placeholder="Rechercher adresse, ville, client..."
+            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-[#dc2626] bg-white placeholder:text-gray-400"
+          />
+          {recherche && (
+            <button onClick={() => setRecherche('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+              <i className="ti ti-x text-xs" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Filtre par client coloré */}
       {clients.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-4">
@@ -263,7 +304,7 @@ export default function BatimentsPageContent() {
 
       {visibles.length === 0 ? (
         <div className="bg-white rounded-md border border-gray-100 text-center py-16">
-          <p className="text-gray-300 text-sm">Aucun bâtiment {filtreClient ? 'pour ce client' : 'pour le moment'}</p>
+          <p className="text-gray-300 text-sm">Aucun bâtiment {recherche ? 'ne correspond à votre recherche' : filtreClient ? 'pour ce client' : 'pour le moment'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

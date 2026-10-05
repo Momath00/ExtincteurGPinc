@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useModules } from '@/lib/modules'
 import Link from 'next/link'
 import ModalModifierRapport from '@/components/rapports/ModalModifierRapport'
+import ImportExcelModal from '@/components/rapports-extincteurs/ImportExcelModal'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const NAVY = '#0f172a'
@@ -12,6 +14,7 @@ const ORANGE = '#dc2626'
 function RapportsExtincteursListContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const modules = useModules()
   const [rapports, setRapports] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
@@ -20,6 +23,7 @@ function RapportsExtincteursListContent() {
   const [filtre, setFiltre] = useState<'tous' | 'ouvert' | 'ferme'>(initialFiltre)
   const [filtreClient, setFiltreClient] = useState('')
   const [recherche, setRecherche] = useState('')
+  const [importOuvert, setImportOuvert] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [modif, setModif] = useState<{ rapport: any; mode: 'technicien' | 'adresse' | 'citoyen' } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -113,7 +117,7 @@ function RapportsExtincteursListContent() {
     if (filtreClient && String(r.batiment?.client) !== filtreClient) return false
     if (recherche.trim()) {
       const q = recherche.toLowerCase()
-      const adresse = (r.batiment?.adresse_complete || '').toLowerCase()
+      const adresse = `${r.batiment?.nom || ''} ${r.batiment?.adresse_complete || ''}`.toLowerCase()
       const client = (r.batiment?.client_nom || '').toLowerCase()
       const techs = (r.techniciens || []).map((t: any) => t.username || '').join(' ').toLowerCase()
       if (!adresse.includes(q) && !client.includes(q) && !techs.includes(q)) return false
@@ -169,14 +173,28 @@ function RapportsExtincteursListContent() {
             </button>
           </div>
         </div>
-        <Link
-          href="/superviseur/rapports-extincteurs/nouveau"
-          className="text-center text-white px-4 py-2.5 rounded-md text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5"
-          style={{ background: ORANGE }}
-        >
-          <i className="ti ti-plus" /> Nouveau rapport
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setImportOuvert(true)}
+            className="px-4 py-2.5 rounded-md text-sm font-bold text-white flex items-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm"
+            style={{ background: NAVY }}
+          >
+            <i className="ti ti-file-spreadsheet" /> Importer Excel
+          </button>
+          <Link
+            href="/superviseur/rapports-extincteurs/nouveau"
+            className="text-center text-white px-4 py-2.5 rounded-md text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+            style={{ background: ORANGE }}
+          >
+            <i className="ti ti-plus" /> Nouveau rapport
+          </Link>
+        </div>
       </div>
+
+      {importOuvert && (
+        <ImportExcelModal onClose={() => setImportOuvert(false)} onImported={() => charger()} />
+      )}
 
       {/* Filtres + Recherche */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -201,13 +219,13 @@ function RapportsExtincteursListContent() {
         </div>
 
         <div className="relative flex-1 sm:max-w-xs">
-          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm" />
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
           <input
             type="text"
             value={recherche}
             onChange={e => setRecherche(e.target.value)}
             placeholder="Rechercher adresse, client..."
-            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-100 rounded-md focus:outline-none focus:border-[#dc2626] bg-white"
+            className="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-[#dc2626] bg-white placeholder:text-gray-400"
           />
           {recherche && (
             <button onClick={() => setRecherche('')}
@@ -221,7 +239,7 @@ function RapportsExtincteursListContent() {
           <select
             value={filtreClient}
             onChange={e => setFiltreClient(e.target.value)}
-            className="py-2 px-3 text-sm border border-gray-100 rounded-md focus:outline-none focus:border-[#dc2626] bg-white text-gray-600 sm:w-48"
+            className="py-2 px-3 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-[#dc2626] bg-white placeholder:text-gray-400 text-gray-600 sm:w-48"
           >
             <option value="">Tous les clients</option>
             {clientsUniques.map(c => (
@@ -273,11 +291,12 @@ function RapportsExtincteursListContent() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate group-hover:text-[#dc2626] transition-colors" style={{ color: NAVY }}>
+                        {r.batiment?.nom && <span className="font-bold">{r.batiment.nom} · </span>}
                         {r.batiment?.adresse_complete || '—'}
                       </p>
                       {r.date_inspection && (
                         <p className="text-xs text-gray-400">
-                          {new Date(r.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'medium' })}
+                          {new Date(r.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'medium' })}
                         </p>
                       )}
                     </div>
@@ -392,7 +411,7 @@ function RapportsExtincteursListContent() {
             </h3>
             <p className="text-xs text-gray-400 mb-5">
               {statutCible.action === 'fermer'
-                ? "Le rapport passera en lecture seule et le certificat sera généré (éclairage lié inclus)."
+                ? `Le rapport passera en lecture seule et le certificat sera généré${modules?.module_eclairage ? ' (éclairage lié inclus)' : ''}.`
                 : 'Le rapport redeviendra modifiable ; le certificat devra être renvoyé après refermeture.'}
             </p>
             <div className="flex gap-2">

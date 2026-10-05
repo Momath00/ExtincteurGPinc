@@ -155,7 +155,7 @@ export default function SuperviseurRapportEclairageDetailPage() {
             {[
               rapport.numero_job ? `Job ${rapport.numero_job}` : '',
               rapport.date_inspection
-                ? new Date(rapport.date_inspection).toLocaleDateString('fr-CA', { dateStyle: 'long' })
+                ? new Date(rapport.date_inspection + 'T12:00:00').toLocaleDateString('fr-CA', { dateStyle: 'long' })
                 : '',
             ].filter(Boolean).join(' · ')}
           </p>
