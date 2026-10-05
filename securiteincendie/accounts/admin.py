@@ -10,7 +10,7 @@ class UtilisateurAdmin(UserAdmin):
     list_filter = ("role", "est_actif", "mdp_temporaire")
     fieldsets = UserAdmin.fieldsets + (
         (
-            "Extincteurs Nationex",
+            "ExtincteurGPinc",
             {
                 "fields": (
                     "role",

@@ -147,21 +147,6 @@ export default function TechnicienRapportExtincteurDetailPage() {
         </Link>
       )}
 
-      {rapport.rapport_cuisine_lie && (
-        <Link
-          href={`/technicien/rapports-cuisine/${rapport.rapport_cuisine_lie.id}`}
-          className="mb-4 flex items-center gap-3 px-4 py-3 rounded-md border text-sm hover:shadow-sm transition-shadow"
-          style={{ background: '#fff2e8', borderColor: '#fde3cc' }}
-        >
-          <i className="ti ti-tools-kitchen-2 flex-shrink-0" style={{ color: ORANGE }} />
-          <span className="flex-1" style={{ color: NAVY }}>
-            Rapport système de cuisine lié — même visite, certificat unifié.{' '}
-            <strong>{rapport.rapport_cuisine_lie.statut === 'ferme' ? 'Fermé' : 'Ouvert'}</strong>
-          </span>
-          <i className="ti ti-chevron-right flex-shrink-0" style={{ color: ORANGE }} />
-        </Link>
-      )}
-
       {readOnly && (
         <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-md border text-sm font-semibold"
           style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#475569' }}>

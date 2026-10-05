@@ -8,7 +8,7 @@ const ROUGE = '#dc2626'
 
 /**
  * Bannière d'envoi direct — affichée sur les pages de rapport (extincteurs,
- * éclairage, cuisine) quand le client du bâtiment est en mode « Envoi
+ * éclairage) quand le client du bâtiment est en mode « Envoi
  * direct » (pas de compte, PDF envoyés par courriel). Regroupe TOUS les
  * documents prêts du bâtiment en un seul clic, peu importe quel rapport a
  * été fermé en dernier. `cle` : change quand le rapport change (fermé,

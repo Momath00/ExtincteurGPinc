@@ -121,7 +121,7 @@ def _envoyer_email_modification_profil(utilisateur, changements: list[tuple[str,
 <h2 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#0f172a;">Votre profil a été modifié</h2>
 <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
   Bonjour <strong style="color:#0f172a;">{escape(prenom)}</strong>,<br>
-  Un superviseur a mis à jour les informations suivantes de votre compte Extincteurs Nationex :
+  Un superviseur a mis à jour les informations suivantes de votre compte ExtincteurGPinc :
 </p>
 <table role="presentation" cellpadding="0" cellspacing="0"
   style="width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;">
@@ -130,7 +130,7 @@ def _envoyer_email_modification_profil(utilisateur, changements: list[tuple[str,
 <p style="margin:16px 0 0;color:#94a3b8;font-size:12px;line-height:1.5;">
   Si vous n'êtes pas à l'origine de cette demande, contactez votre superviseur.
 </p>"""
-    _envoyer_email(utilisateur.email, "Votre profil Extincteurs Nationex a été modifié", _html_template(html_body))
+    _envoyer_email(utilisateur.email, "Votre profil ExtincteurGPinc a été modifié", _html_template(html_body))
 
 
 class UtilisateurViewSet(viewsets.ModelViewSet):
@@ -212,7 +212,7 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
 <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
   Bonjour <strong style="color:#0f172a;">{prenom}</strong>,<br>
   vous avez été invité(e) en tant que <strong style="color:#dc2626;">{role_label}</strong>
-  sur la plateforme <strong style="color:#0f172a;">Extincteurs Nationex</strong>.
+  sur la plateforme <strong style="color:#0f172a;">ExtincteurGPinc</strong>.
 </p>
 <table role="presentation" cellpadding="0" cellspacing="0"
   style="width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:24px;">
@@ -236,7 +236,7 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
 </div>"""
         _envoyer_email(
             data["email"],
-            f"Invitation — Extincteurs Nationex ({role_label})",
+            f"Invitation — ExtincteurGPinc ({role_label})",
             _html_template(html_body),
         )
 
@@ -306,7 +306,7 @@ class MotDePasseOublieView(APIView):
 </p>"""
         _envoyer_email(
             email,
-            "Réinitialisation de mot de passe — Extincteurs Nationex",
+            "Réinitialisation de mot de passe — ExtincteurGPinc",
             _html_template(html_body),
         )
         return Response({"message": "Un code de vérification vous a été envoyé par email."})
@@ -392,7 +392,7 @@ class ContactView(APIView):
 <p style="margin:0;color:#0f172a;font-size:14px;line-height:1.6;">{message_html}</p>"""
 
         _envoyer_email(
-            getattr(settings, "CONTACT_EMAIL", "service@nationex.net"),
+            getattr(settings, "CONTACT_EMAIL", "info@extincteurgpinc.com"),
             f"Nouveau message de contact — {nom_complet}",
             _html_template(html_equipe),
             reply_to=data["email"],
@@ -403,7 +403,7 @@ class ContactView(APIView):
 <h2 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#0f172a;">Message bien reçu</h2>
 <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
   Bonjour <strong style="color:#0f172a;">{data['prenom']}</strong>,<br>
-  Extincteurs Nationex a bien reçu votre message. Notre équipe vous répondra dans les
+  ExtincteurGPinc a bien reçu votre message. Notre équipe vous répondra dans les
   plus brefs délais.
 </p>
 <div style="background:#f8fafc;border-left:3px solid #dc2626;padding:12px 16px;border-radius:0 8px 8px 0;">
@@ -412,7 +412,7 @@ class ContactView(APIView):
 
         _envoyer_email(
             data["email"],
-            "Votre message a bien été reçu — Extincteurs Nationex",
+            "Votre message a bien été reçu — ExtincteurGPinc",
             _html_template(html_visiteur),
         )
 

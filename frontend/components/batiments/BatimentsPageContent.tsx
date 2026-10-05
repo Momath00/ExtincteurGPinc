@@ -241,7 +241,7 @@ export default function BatimentsPageContent() {
             className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
             style={{ background: !filtreClient ? NAVY : '#fff', color: !filtreClient ? '#fff' : '#6b7280', border: !filtreClient ? 'none' : '1px solid #e5e7eb' }}
           >
-            Tous
+            Tous ({batiments.length})
           </button>
           {clients.map((c: any) => {
             const col = clientColor(c.id)
@@ -254,7 +254,7 @@ export default function BatimentsPageContent() {
                 style={{ background: active ? col.bg : '#fff', color: active ? '#fff' : '#6b7280', border: active ? 'none' : '1px solid #e5e7eb' }}
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: active ? '#fff' : col.bg }} />
-                {c.nom}
+                {c.nom} ({batiments.filter(b => b.client === c.id).length})
               </button>
             )
           })}

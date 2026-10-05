@@ -34,43 +34,7 @@ def envoyer_email_certificat_extincteur_disponible(rapport) -> None:
 
     envoyer_email(
         citoyen.email,
-        "Votre certificat d'extincteurs est disponible — Extincteurs Nationex",
-        html_template(html_body),
-    )
-
-
-def envoyer_email_certificat_cuisine_disponible(rapport) -> None:
-    """Avertit le citoyen que le certificat de vérification du système
-    d'extinction de cuisine est disponible — envoyé quand le superviseur l'envoie."""
-    citoyen = rapport.citoyen
-    cert = rapport.certificat
-    bat = rapport.batiment
-    adresse = f"{bat.numero_civique} {bat.rue}, {bat.ville}"
-    frontend_url = getattr(settings, "FRONTEND_URL", "").rstrip("/")
-    lien = f"{frontend_url}/citoyen/rapports-cuisine/{rapport.id}" if frontend_url else ""
-
-    html_body = f"""
-<h2 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#0f172a;">Votre certificat est disponible</h2>
-<p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
-  Bonjour <strong style="color:#0f172a;">{citoyen.get_full_name() or citoyen.username}</strong>,<br>
-  le rapport de vérification du système d'extinction de cuisine au
-  <strong style="color:#0f172a;">{adresse}</strong> ainsi que son certificat sont maintenant
-  disponibles sur la plateforme.
-</p>
-<table role="presentation" cellpadding="0" cellspacing="0"
-  style="width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:24px;">
-  <tr>
-    <td style="padding:14px 20px;">
-      <span style="display:block;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Certificat</span>
-      <span style="font-size:14px;font-weight:700;color:#0f172a;">{cert.numero}</span>
-    </td>
-  </tr>
-</table>
-{f'<p style="margin:0;text-align:center;"><a href="{lien}" style="display:inline-block;background:#dc2626;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:8px;text-decoration:none;">Voir mon rapport</a></p>' if lien else ''}"""
-
-    envoyer_email(
-        citoyen.email,
-        "Votre certificat du système de cuisine est disponible — Extincteurs Nationex",
+        "Votre certificat d'extincteurs est disponible — ExtincteurGPinc",
         html_template(html_body),
     )
 
@@ -101,7 +65,7 @@ def envoyer_email_documents_directs(batiment, elements: list[dict]) -> None:
 <h2 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#0f172a;">Vos documents d'inspection</h2>
 <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
   Bonjour <strong style="color:#0f172a;">{destinataire_nom}</strong>,<br>
-  Extincteurs Nationex a réalisé l'inspection du
+  ExtincteurGPinc a réalisé l'inspection du
   <strong style="color:#0f172a;">{adresse}</strong>. Vous trouverez ci-joint vos
   rapport(s) et certificat(s) en format PDF.
 </p>
@@ -113,36 +77,24 @@ def envoyer_email_documents_directs(batiment, elements: list[dict]) -> None:
   📎 {len(attachments)} pièce{'s' if len(attachments) > 1 else ''} jointe{'s' if len(attachments) > 1 else ''}
 </p>"""
 
-    sujet = f"Extincteurs Nationex — Documents d'inspection ({adresse})"
+    sujet = f"ExtincteurGPinc — Documents d'inspection ({adresse})"
     envoyer_email(client.contact_email, sujet, html_template(html_body), attachments=attachments)
 
 
 def _documents_prets_directs(batiment) -> list:
-    """Rapports fermés dont le certificat n'est pas encore envoyé — rapports
-    extincteurs (certificat unifié : extincteurs + éclairage + cuisine liés)
-    et rapports cuisine indépendants. Liste de rapports ; les PDF ne sont
-    générés qu'à l'envoi (voir `_element_direct`)."""
-    rapports = [
+    """Rapports extincteurs fermés (certificat unifié : extincteurs +
+    éclairage liés) dont le certificat n'est pas encore envoyé. Liste de
+    rapports ; les PDF ne sont générés qu'à l'envoi (voir `_element_direct`)."""
+    return [
         r for r in batiment.rapports_extincteurs.filter(statut="ferme")
         if hasattr(r, "certificat") and not r.certificat.certificat_envoye
     ]
-    rapports += [
-        r for r in batiment.rapports_cuisine.filter(statut="ferme", rapport_extincteur__isnull=True)
-        if hasattr(r, "certificat") and not r.certificat.certificat_envoye
-    ]
-    return rapports
 
 
 def _label_direct(rapport) -> str:
-    from .models import RapportCuisine
-
-    if isinstance(rapport, RapportCuisine):
-        return "Système d'extinction de cuisine"
     parties = ["Extincteurs portatifs"]
     if getattr(rapport, "rapport_eclairage_lie", None):
         parties.append("éclairage d'urgence")
-    if getattr(rapport, "rapport_cuisine_lie", None):
-        parties.append("cuisine")
     return " + ".join(parties)
 
 
@@ -150,34 +102,22 @@ def _element_direct(rapport, utilisateur) -> dict:
     """Pièces jointes (rapport(s) + certificat en PDF) d'un rapport fermé."""
     from eclairage.views import RapportEclairageViewSet
 
-    from .models import RapportCuisine
     from .pdf import pdf_action
-    from .views import RapportCuisineViewSet, RapportExtincteurViewSet
+    from .views import RapportExtincteurViewSet
 
     cert = rapport.certificat
     pdf = "application/pdf"
-    if isinstance(rapport, RapportCuisine):
-        attachments = [
-            (f"rapport-cuisine-{cert.numero}.pdf", pdf_action(RapportCuisineViewSet, "telecharger", rapport.pk, utilisateur), pdf),
-            (f"certificat-{cert.numero}.pdf", pdf_action(RapportCuisineViewSet, "certificat_pdf", rapport.pk, utilisateur), pdf),
-        ]
-    else:
-        attachments = [
-            (f"rapport-extincteurs-{cert.numero}.pdf", pdf_action(RapportExtincteurViewSet, "telecharger", rapport.pk, utilisateur), pdf),
-        ]
-        eclairage = getattr(rapport, "rapport_eclairage_lie", None)
-        if eclairage:
-            attachments.append(
-                (f"rapport-eclairage-{cert.numero}.pdf", pdf_action(RapportEclairageViewSet, "telecharger", eclairage.pk, utilisateur), pdf)
-            )
-        cuisine = getattr(rapport, "rapport_cuisine_lie", None)
-        if cuisine:
-            attachments.append(
-                (f"rapport-cuisine-{cert.numero}.pdf", pdf_action(RapportCuisineViewSet, "telecharger", cuisine.pk, utilisateur), pdf)
-            )
+    attachments = [
+        (f"rapport-extincteurs-{cert.numero}.pdf", pdf_action(RapportExtincteurViewSet, "telecharger", rapport.pk, utilisateur), pdf),
+    ]
+    eclairage = getattr(rapport, "rapport_eclairage_lie", None)
+    if eclairage:
         attachments.append(
-            (f"certificat-{cert.numero}.pdf", pdf_action(RapportExtincteurViewSet, "certificat_pdf", rapport.pk, utilisateur), pdf)
+            (f"rapport-eclairage-{cert.numero}.pdf", pdf_action(RapportEclairageViewSet, "telecharger", eclairage.pk, utilisateur), pdf)
         )
+    attachments.append(
+        (f"certificat-{cert.numero}.pdf", pdf_action(RapportExtincteurViewSet, "certificat_pdf", rapport.pk, utilisateur), pdf)
+    )
     return {"label": _label_direct(rapport), "numero": cert.numero, "attachments": attachments, "_obj": rapport}
 
 

@@ -132,6 +132,8 @@ export default function ClientsPageContent() {
   const [supprimerId, setSupprimerId] = useState<number | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [recherche, setRecherche] = useState('')
+  const [filtreMode, setFiltreMode] = useState<'tous' | 'plateforme' | 'direct'>('tous')
 
   function charger() {
     const token = localStorage.getItem('access_token')
@@ -165,6 +167,14 @@ export default function ClientsPageContent() {
       setTimeout(() => setErrorMsg(''), 4000)
     }
   }
+
+  const visibles = clients.filter((c: any) => {
+    if (filtreMode !== 'tous' && c.mode_livraison !== filtreMode) return false
+    const q = recherche.trim().toLowerCase()
+    if (!q) return true
+    return [c.nom, c.contact_nom, c.contact_email, c.contact_telephone, c.adresse]
+      .some(v => (v || '').toLowerCase().includes(q))
+  })
 
   if (loading) {
     return (
@@ -206,7 +216,48 @@ export default function ClientsPageContent() {
         </button>
       </div>
 
-      {clients.length === 0 ? (
+      {clients.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+          <div className="flex gap-1 p-1 rounded-md border border-gray-100 bg-white w-full sm:w-auto">
+            {([
+              { key: 'tous', label: `Tous (${clients.length})` },
+              { key: 'plateforme', label: `Espace client (${clients.filter((c: any) => c.mode_livraison !== 'direct').length})` },
+              { key: 'direct', label: `Envoi direct (${clients.filter((c: any) => c.mode_livraison === 'direct').length})` },
+            ] as { key: 'tous' | 'plateforme' | 'direct'; label: string }[]).map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFiltreMode(f.key)}
+                className="flex-1 sm:flex-none px-3 py-1.5 rounded text-xs font-bold transition-colors whitespace-nowrap"
+                style={{ background: filtreMode === f.key ? NAVY : 'transparent', color: filtreMode === f.key ? '#fff' : '#6b7280' }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative flex-1 sm:max-w-xs">
+            <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm" />
+            <input
+              type="text"
+              value={recherche}
+              onChange={e => setRecherche(e.target.value)}
+              placeholder="Rechercher nom, contact, courriel..."
+              className="w-full pl-8 pr-8 py-2 text-sm border border-gray-100 rounded-md focus:outline-none focus:border-[#dc2626] bg-white"
+            />
+            {recherche && (
+              <button onClick={() => setRecherche('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                <i className="ti ti-x text-xs" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {clients.length > 0 && visibles.length === 0 ? (
+        <div className="bg-white rounded-md border border-gray-100 text-center py-16">
+          <p className="text-gray-300 text-sm">Aucun client ne correspond à ce filtre.</p>
+        </div>
+      ) : clients.length === 0 ? (
         <div className="bg-white rounded-md border border-gray-100 text-center py-16">
           <p className="text-gray-300 text-sm mb-3">Aucun client pour le moment</p>
           <button onClick={() => setModalClient(null)} className="text-sm font-bold hover:underline" style={{ color: ORANGE }}>
@@ -215,7 +266,7 @@ export default function ClientsPageContent() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {clients.map((c: any) => {
+          {visibles.map((c: any) => {
             const col = clientColor(c.id)
             return (
               <div

@@ -44,7 +44,9 @@ services:
   frontend:
     image: node:20-alpine
     working_dir: /frontend
-    command: sh -c "npm install && npm run dev"
+    # Webpack plutôt que Turbopack : sous Docker (Windows), seul le polling de
+    # webpack (WATCHPACK_POLLING) détecte les modifications du volume monté.
+    command: sh -c "npm install && npm run dev -- --webpack"
     volumes:
       - ./frontend:/frontend
       - /frontend/node_modules

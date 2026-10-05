@@ -185,13 +185,13 @@ export default function LoginPage() {
       {/* Logo + wordmark — au-dessus de la carte */}
       <div className="flex flex-col items-center mb-6 sm:mb-8">
         <img
-          src="/logo-wordmark.png"
-          alt="Extincteurs Nationex"
+          src="/logo.svg"
+          alt="ExtincteurGPinc"
           className="h-12 w-auto sm:h-14"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
         <h1 className="mt-3 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
-          EXTINCTEURS <span style={{ color: RED }}>NATIONEX</span>
+          EXTINCTEUR<span style={{ color: RED }}>GP</span>INC
         </h1>
         <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-white/40">
           Sécurité incendie
@@ -325,7 +325,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-white/30 mt-6">
-          © {new Date().getFullYear()} Extincteurs Nationex
+          © {new Date().getFullYear()} ExtincteurGPinc
         </p>
       </div>
 

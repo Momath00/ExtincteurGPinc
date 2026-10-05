@@ -26,7 +26,6 @@ export default function NouveauRapportContent() {
   const [technicienIds, setTechnicienIds] = useState<number[]>([])
   const [dateInspection, setDateInspection] = useState('')
   const [numeroJob, setNumeroJob] = useState('')
-  const [avecSystemeCuisine, setAvecSystemeCuisine] = useState(false)
 
   const [loadingBatiments, setLoadingBatiments] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -103,7 +102,6 @@ export default function NouveauRapportContent() {
           techniciens: technicienIds,
           date_inspection: dateInspection || null,
           numero_job: numeroJob,
-          avec_systeme_cuisine: avecSystemeCuisine,
         }),
       })
       const data = await res.json() as any
@@ -184,30 +182,6 @@ export default function NouveauRapportContent() {
                 <option key={b.id} value={b.id}>{b.adresse_complete}</option>
               ))}
             </select>
-          )}
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onClick={() => setAvecSystemeCuisine(v => !v)}
-            className="flex items-center gap-3 p-3 rounded-md border-2 text-left transition-colors w-full sm:w-auto"
-            style={{ borderColor: avecSystemeCuisine ? ORANGE : '#e5e7eb', background: avecSystemeCuisine ? '#fff2e8' : '#fff' }}
-          >
-            <span
-              className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2"
-              style={{ borderColor: avecSystemeCuisine ? ORANGE : '#d1d5db', background: avecSystemeCuisine ? ORANGE : 'transparent' }}
-            >
-              {avecSystemeCuisine && <i className="ti ti-check text-white text-xs" />}
-            </span>
-            <span className="text-sm font-medium" style={{ color: NAVY }}>
-              Ce bâtiment est équipé d'un système d'extinction de cuisine (hotte)
-            </span>
-          </button>
-          {avecSystemeCuisine && (
-            <p className="text-xs text-gray-400 mt-1.5">
-              Un rapport cuisine lié sera créé automatiquement avec ce rapport.
-            </p>
           )}
         </div>
 

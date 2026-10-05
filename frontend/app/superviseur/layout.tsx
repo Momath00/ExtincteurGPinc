@@ -74,7 +74,7 @@ export default function SuperviseurLayout({ children }: { children: React.ReactN
           <button onClick={() => setMenuOpen(true)} className="text-white p-1.5">
             <i className="ti ti-menu-2 text-xl" />
           </button>
-          <img src="/logo.svg" alt="Extincteurs Nationex" className="h-8 w-auto" />
+          <img src="/logo.svg" alt="ExtincteurGPinc" className="h-8 w-auto" />
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
             style={{ background: '#dc2626' }}

@@ -26,11 +26,6 @@ const NAV_GROUPS = [
         icon: 'ti-bulb',
       },
       {
-        href: '/superviseur/rapports-cuisine',
-        label: 'Rapports cuisine',
-        icon: 'ti-tools-kitchen-2',
-      },
-      {
         href: '/superviseur/certificats',
         label: 'Certificats',
         icon: 'ti-certificate',
@@ -73,18 +68,18 @@ export default function Sidebar({ user, onClose }: { user: any; onClose?: () => 
           <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg overflow-hidden">
             <img
               src="/logo.svg"
-              alt="Extincteurs Nationex"
+              alt="ExtincteurGPinc"
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
                 const p = e.currentTarget.parentElement
-                if (p) p.innerHTML = `<span style="font-size:18px;font-weight:800;color:${RED};">EN</span>`
+                if (p) p.innerHTML = `<span style="font-size:18px;font-weight:800;color:${RED};">GP</span>`
               }}
             />
           </div>
           <div>
-            <p className="text-white text-[11px] font-bold tracking-widest uppercase leading-tight">Extincteurs</p>
-            <p className="text-white/60 text-[10px] font-bold tracking-widest uppercase">Nationex</p>
+            <p className="text-white text-[11px] font-bold tracking-widest uppercase leading-tight">Extincteur</p>
+            <p className="text-white/60 text-[10px] font-bold tracking-widest uppercase">GP inc</p>
           </div>
         </Link>
 

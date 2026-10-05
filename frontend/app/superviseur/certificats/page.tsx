@@ -107,7 +107,7 @@ export default function CertificatsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: NAVY }}>Certificats</h1>
-          <p className="text-gray-400 text-sm mt-1">{certificats.length} certificat{certificats.length !== 1 ? 's' : ''} émis — extincteurs, éclairage d'urgence et système de cuisine</p>
+          <p className="text-gray-400 text-sm mt-1">{certificats.length} certificat{certificats.length !== 1 ? 's' : ''} émis — extincteurs et éclairage d'urgence</p>
         </div>
       </div>
 

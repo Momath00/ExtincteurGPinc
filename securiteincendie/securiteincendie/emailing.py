@@ -36,11 +36,11 @@ def logo_data_uri(size_px: int = 52) -> str:
             b64 = base64.b64encode(raw).decode("ascii")
             _LOGO_CACHE[size_px] = (
                 f'<img src="data:image/png;base64,{b64}" '
-                f'style="width:{size_px}px;height:{size_px}px;object-fit:cover;" alt="Extincteurs Nationex" />'
+                f'style="width:{size_px}px;height:{size_px}px;object-fit:cover;" alt="ExtincteurGPinc" />'
             )
         else:
             _LOGO_CACHE[size_px] = (
-                f'<span style="font-size:{size_px // 3}pt;font-weight:900;color:#e11324;letter-spacing:1px;">EN</span>'
+                f'<span style="font-size:{size_px // 3}pt;font-weight:900;color:#e11324;letter-spacing:1px;">GP</span>'
             )
     return _LOGO_CACHE[size_px]
 
@@ -49,7 +49,7 @@ def logo_wordmark_data_uri(height_px: int = 46) -> str:
     """Bandeau rectangulaire (img data URI, hauteur fixe / largeur libre — le
     logo garde son ratio naturel), pour les en-têtes de certificat/rapport où
     un cadre carré ou circulaire écraserait le texte du logo. Repli texte
-    « EXTINCTEURS NATIONEX » si l'image est absente."""
+    « EXTINCTEUR GP INC » si l'image est absente."""
     if height_px not in _WORDMARK_CACHE:
         path = Path(settings.BASE_DIR).parent / "frontend" / "public" / "logo-wordmark.png"
         if path.exists():
@@ -71,12 +71,12 @@ def logo_wordmark_data_uri(height_px: int = 46) -> str:
             _WORDMARK_CACHE[height_px] = (
                 f'<img src="data:image/png;base64,{b64}" '
                 f'style="height:{height_px}px;width:auto;max-width:{height_px * 4}px;object-fit:contain;" '
-                f'alt="Extincteurs Nationex" />'
+                f'alt="ExtincteurGPinc" />'
             )
         else:
             _WORDMARK_CACHE[height_px] = (
                 f'<span style="font-size:{height_px // 3}pt;font-weight:900;color:#ffffff;letter-spacing:1px;">'
-                f'EXTINCTEURS <span style="color:#e11324;">NATIONEX</span></span>'
+                f'EXTINCTEUR<span style="color:#e11324;">GP</span>INC</span>'
             )
     return _WORDMARK_CACHE[height_px]
 
@@ -94,9 +94,9 @@ def logo_img_tag(size_px: int = 44) -> str:
         return (
             f'<img src="{frontend_url}/icon-192.png" width="{size_px}" height="{size_px}" '
             f'style="width:{size_px}px;height:{size_px}px;object-fit:cover;display:block;" '
-            f'alt="Extincteurs Nationex" />'
+            f'alt="ExtincteurGPinc" />'
         )
-    return f'<span style="font-size:{size_px // 3}pt;font-weight:900;color:#e11324;letter-spacing:1px;">EN</span>'
+    return f'<span style="font-size:{size_px // 3}pt;font-weight:900;color:#e11324;letter-spacing:1px;">GP</span>'
 
 
 def _icone_case(svg_inner: str) -> str:
@@ -109,11 +109,10 @@ def _icone_case(svg_inner: str) -> str:
     )
 
 
-def pied_de_page_nationex() -> str:
+def pied_de_page_entreprise() -> str:
     """
     Pied de page réutilisé sur les rapports et certificats PDF — coordonnées
-    de l'entreprise + pictogrammes « Protection contre incendie » + badge
-    membre NFPA, repris du certificat papier officiel.
+    de l'entreprise + pictogrammes « Protection contre incendie ».
     """
     icone_extincteur = _icone_case(
         "<path d='M9 3h4l1 3'/><path d='M10 6v3'/>"
@@ -133,32 +132,19 @@ def pied_de_page_nationex() -> str:
         "<path d='M8 14v2'/><path d='M12 14v3'/><path d='M16 14v2'/>"
     )
 
-    badge_nfpa = (
-        "<div style='width:40px;height:40px;border:1.5px solid #0a0b0d;border-radius:4px;"
-        "display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:2px;padding:3px 0;'>"
-        "<span style='font-size:5pt;font-weight:800;letter-spacing:0.4px;color:#0a0b0d;'>MEMBRE</span>"
-        "<span style='width:18px;height:18px;border:1.2px solid #0a0b0d;border-radius:3px;"
-        "display:flex;align-items:center;justify-content:center;'>"
-        "<svg width='11' height='11' viewBox='0 0 24 24' fill='#dc2626'>"
-        "<path d='M12 2c1 4-3 5-3 8a3 3 0 0 0 6 0c0-1-.5-2-1-2.5.5 2-1 3-2 3-1.5 0-2-1.5-1-3 1-1.5 1.5-3.5 1-5.5z'/>"
-        "</svg></span>"
-        "<span style='font-size:5.5pt;font-weight:900;letter-spacing:0.4px;color:#0a0b0d;'>NFPA</span>"
-        "</div>"
-    )
+    contact = getattr(settings, "CONTACT_EMAIL", "")
 
     return f"""<div style="margin-top:22px;padding-top:12px;border-top:1.5px solid #e5e7eb;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
   <div style="font-size:7.5pt;line-height:1.55;color:#111;font-weight:700;">
-    <div style="font-weight:900;letter-spacing:0.3px;color:#0a0b0d;">EXTINCTEURS NATIONEX &nbsp;&nbsp;<span style="font-weight:700;color:#555;">RBQ 5688 8944-01</span></div>
-    <div><strong>SERVICE :</strong> 514.794.4181 &nbsp;&nbsp; <strong>ADM. :</strong> 514.721.6122</div>
-    <div>3471 39e Avenue, Montréal, Québec, H1A 3Y6</div>
-    <div>service@nationex.net &nbsp;&nbsp; www.nationex.net</div>
+    <div style="font-weight:900;letter-spacing:0.3px;color:#0a0b0d;">EXTINCTEUR<span style="color:#e11324;">GP</span>INC</div>
+    <div><strong>TÉL. :</strong> 514-943-0099</div>
+    <div>{contact}</div>
   </div>
   <div style="display:flex;align-items:flex-end;gap:12px;">
     <div>
       <div style="font-size:6pt;font-weight:800;letter-spacing:0.8px;color:#0a0b0d;text-transform:uppercase;margin-bottom:4px;">Protection contre incendie</div>
       <div style="display:flex;gap:4px;">{icone_extincteur}{icone_boyau}{icone_sortie}{icone_douche}</div>
     </div>
-    {badge_nfpa}
   </div>
 </div>"""
 
@@ -180,13 +166,13 @@ def html_template(body: str) -> str:
                 {logo_img_tag(44)}
               </td></tr>
             </table>
-            <p style="margin:0;color:#fff;font-size:12px;font-weight:700;letter-spacing:2px;">EXTINCTEURS NATIONEX</p>
+            <p style="margin:0;color:#fff;font-size:12px;font-weight:700;letter-spacing:2px;">EXTINCTEUR GP INC</p>
           </td>
         </tr>
         <tr><td style="background:#fff;padding:32px;">{body}</td></tr>
         <tr>
           <td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center;">
-            <p style="margin:0;color:#94a3b8;font-size:11px;">© {year} Extincteurs Nationex · Courriel confidentiel</p>
+            <p style="margin:0;color:#94a3b8;font-size:11px;">© {year} ExtincteurGPinc · Courriel confidentiel</p>
           </td>
         </tr>
       </table>

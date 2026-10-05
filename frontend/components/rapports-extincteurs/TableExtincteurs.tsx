@@ -272,6 +272,7 @@ function LigneExtincteur({
         <td className="px-2 py-2">{yearInput('date_fabrication')}</td>
         <td className="px-2 py-2">{yearInput('prochaine_maintenance')}</td>
         <td className="px-2 py-2">{yearInput('prochain_test_hydrostatique')}</td>
+        <td className="px-2 py-2">{textInput('numero_serie', 'N° série', 'w-full min-w-[100px]')}</td>
         <td className="px-2 py-2">{etatInput()}</td>
         <td className="px-2 py-2">{textInput('remarque', 'Remarque...', 'w-full min-w-[120px]')}</td>
         {!readOnly && (
@@ -287,7 +288,7 @@ function LigneExtincteur({
       </tr>
       {confirmDelete && (
         <tr>
-          <td colSpan={readOnly ? 11 : 12}>
+          <td colSpan={readOnly ? 12 : 13}>
             <div className="flex items-center gap-3 px-4 py-2.5 bg-red-50 text-xs border-t border-red-100">
               <i className="ti ti-alert-circle text-red-500" />
               <span className="text-red-700 font-semibold">Supprimer cette ligne ?</span>
@@ -528,6 +529,7 @@ export default function TableExtincteurs({
                   <th className="text-left px-2 py-2.5">Date fabrication</th>
                   <th className="text-left px-2 py-2.5">Prochaine maintenance</th>
                   <th className="text-left px-2 py-2.5">Prochain test hydro.</th>
+                  <th className="text-left px-2 py-2.5">N° série</th>
                   <th className="text-center px-2 py-2.5" title="D=Défectueux, C=Conforme, NI=Non inspecté">État</th>
                   <th className="text-left px-2 py-2.5">Remarque</th>
                   {!readOnly && <th className="px-2 py-2.5 w-10" />}

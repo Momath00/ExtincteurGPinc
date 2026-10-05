@@ -8,17 +8,17 @@ export default function PublicFooter() {
 
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
-              <img src="/logo.svg" alt="Extincteurs Nationex" className="h-9 w-auto" />
+              <img src="/logo.svg" alt="ExtincteurGPinc" className="h-9 w-auto" />
               <span className="text-base font-bold text-white leading-tight">
-                Extincteurs Nationex
+                ExtincteurGPinc
               </span>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed">
               Gestion des rapports de vérification et certificats d'extincteurs portatifs.
             </p>
-            <a href="mailto:service@nationex.net"
+            <a href="mailto:info@extincteurgpinc.com"
               className="text-[#dc2626] text-sm mt-3 block hover:underline">
-              service@nationex.net
+              info@extincteurgpinc.com
             </a>
           </div>
 
@@ -50,10 +50,10 @@ export default function PublicFooter() {
 
         <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-white/40 text-xs">
-            © {new Date().getFullYear()} Extincteurs Nationex. Tous droits réservés.
+            © {new Date().getFullYear()} ExtincteurGPinc. Tous droits réservés.
           </p>
-          <a href="tel:+15140000000" className="text-white/40 text-xs hover:text-white/70 transition-colors">
-            514-000-0000
+          <a href="tel:+15149430099" className="text-white/40 text-xs hover:text-white/70 transition-colors">
+            514-943-0099
           </a>
         </div>
       </div>

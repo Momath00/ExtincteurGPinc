@@ -7,8 +7,6 @@ from .views import (
     CertificatsUnifiesView,
     ClientViewSet,
     ExtincteurItemViewSet,
-    HotteCuisineViewSet,
-    RapportCuisineViewSet,
     RapportExtincteurViewSet,
 )
 
@@ -18,8 +16,6 @@ router.register(r"batiments", BatimentViewSet, basename="batiment")
 router.register(r"rapports-extincteurs", RapportExtincteurViewSet, basename="rapport-extincteur")
 router.register(r"extincteurs", ExtincteurItemViewSet, basename="extincteur")
 router.register(r"boyaux", BoyauItemViewSet, basename="boyau")
-router.register(r"rapports-cuisine", RapportCuisineViewSet, basename="rapport-cuisine")
-router.register(r"hottes-cuisine", HotteCuisineViewSet, basename="hotte-cuisine")
 
 # Routes générées, à titre de référence :
 # GET/POST    /api/clients/                              → liste / créer un client (superviseur)
@@ -37,18 +33,6 @@ router.register(r"hottes-cuisine", HotteCuisineViewSet, basename="hotte-cuisine"
 # GET         /api/rapports-extincteurs/{id}/telecharger/              → rapport imprimable (HTML)
 # GET/PATCH   /api/extincteurs/{id}/                                    → corriger une ligne d'extincteur
 # GET/PATCH   /api/boyaux/{id}/                                          → corriger une ligne de boyau
-#
-# GET/POST    /api/rapports-cuisine/                       → liste / créer un rapport (système d'extinction de cuisine)
-# GET/PATCH   /api/rapports-cuisine/{id}/                   → détail / (bloqué si fermé)
-# PATCH       /api/rapports-cuisine/{id}/reassigner/         → réassigner bâtiment/techniciens/citoyen
-# POST        /api/rapports-cuisine/{id}/fermer/              → fermer + génère le certificat
-# POST        /api/rapports-cuisine/{id}/rouvrir/               → rouvrir un rapport fermé
-# POST        /api/rapports-cuisine/{id}/envoyer-certificat/     → envoyer le certificat au citoyen
-# GET/POST    /api/rapports-cuisine/{id}/hottes/                   → lister/ajouter une hotte
-# GET         /api/rapports-cuisine/{id}/historique/                 → historique du rapport
-# GET         /api/rapports-cuisine/{id}/certificat-pdf/               → certificat imprimable (HTML)
-# GET         /api/rapports-cuisine/{id}/telecharger/                   → rapport imprimable (HTML)
-# GET/PATCH   /api/hottes-cuisine/{id}/                                   → corriger/renommer une hotte
 #
 # GET         /api/certificats/                                                → tous les certificats émis (superviseur)
 

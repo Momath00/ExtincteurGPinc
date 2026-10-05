@@ -13,12 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Extincteurs Nationex",
+  title: "ExtincteurGPinc",
   description: "Gestion des rapports de vérification et certificats d'extincteurs portatifs",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Nationex",
+    title: "ExtincteurGPinc",
   },
 };
 

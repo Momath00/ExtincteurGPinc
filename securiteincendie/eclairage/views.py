@@ -3,7 +3,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from securiteincendie.emailing import logo_data_uri, pied_de_page_nationex
+from securiteincendie.emailing import logo_data_uri, pied_de_page_entreprise
 
 from inspections.views import EstSuperviseur, EstSuperviseurOuTechnicien, _date_inspection_fr
 
@@ -214,7 +214,7 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
   <div class="brand">
     <div class="logo-circle">{logo_content}</div>
     <div class="brand-text">
-      <h1>Extincteurs Nationex <span style="font-weight:400;">Inc.</span></h1>
+      <h1>Extincteur<span style="color:#e11324;">GP</span><span style="font-weight:400;">inc</span></h1>
       <p>Rapport de vérification — Éclairage d'urgence</p>
     </div>
   </div>
@@ -241,7 +241,7 @@ class RapportEclairageViewSet(viewsets.ModelViewSet):
   </tr></thead>
   <tbody>{item_rows}</tbody>
 </table>
-{pied_de_page_nationex()}
+{pied_de_page_entreprise()}
 </div>
 </body>
 </html>"""

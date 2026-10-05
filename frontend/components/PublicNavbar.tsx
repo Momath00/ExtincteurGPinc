@@ -35,7 +35,7 @@ export default function PublicNavbar() {
         <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
           <img
             src="/logo.svg"
-            alt="Extincteurs Nationex"
+            alt="ExtincteurGPinc"
             className="w-auto h-9"
           />
         </Link>

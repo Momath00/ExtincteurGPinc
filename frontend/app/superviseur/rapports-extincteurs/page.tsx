@@ -25,6 +25,8 @@ function RapportsExtincteursListContent() {
   const [toast, setToast] = useState<string | null>(null)
   const [supprimerId, setSupprimerId] = useState<number | null>(null)
   const [suppression, setSuppression] = useState(false)
+  const [statutCible, setStatutCible] = useState<{ id: number; action: 'fermer' | 'rouvrir' } | null>(null)
+  const [changementStatut, setChangementStatut] = useState(false)
 
   function onModifSaved() {
     setToast('Modification faite avec succès')
@@ -43,6 +45,25 @@ function RapportsExtincteursListContent() {
     setSuppression(false)
     setSupprimerId(null)
     setToast('Rapport supprimé.')
+    setTimeout(() => setToast(null), 3000)
+    charger(true)
+  }
+
+  async function changerStatut() {
+    if (!statutCible) return
+    setChangementStatut(true)
+    const token = localStorage.getItem('access_token')
+    const res = await fetch(`${API_URL}/api/rapports-extincteurs/${statutCible.id}/${statutCible.action}/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    setChangementStatut(false)
+    const action = statutCible.action
+    setStatutCible(null)
+    setToast(res.ok
+      ? (action === 'fermer' ? 'Rapport fermé — certificat généré.' : 'Rapport rouvert.')
+      : (data.error || 'Action impossible.'))
     setTimeout(() => setToast(null), 3000)
     charger(true)
   }
@@ -336,6 +357,15 @@ function RapportsExtincteursListContent() {
                       </span>
                     )}
                     <button
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); setStatutCible({ id: r.id, action: ferme ? 'rouvrir' : 'fermer' }) }}
+                      title={ferme ? 'Rouvrir le rapport' : 'Fermer le rapport'}
+                      className="h-6 px-2 rounded flex items-center gap-1 flex-shrink-0 text-xs font-semibold border transition-colors hover:bg-gray-50 whitespace-nowrap"
+                      style={{ borderColor: '#e5e7eb', color: NAVY }}
+                    >
+                      <i className={`ti ${ferme ? 'ti-lock-open' : 'ti-lock'} text-xs`} />
+                      {ferme ? 'Rouvrir' : 'Fermer'}
+                    </button>
+                    <button
                       onClick={e => { e.preventDefault(); e.stopPropagation(); setSupprimerId(r.id) }}
                       title="Supprimer le rapport"
                       className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -346,6 +376,31 @@ function RapportsExtincteursListContent() {
                 </Link>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {statutCible !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setStatutCible(null)} />
+          <div className="relative bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+              <i className={`ti ${statutCible.action === 'fermer' ? 'ti-lock' : 'ti-lock-open'} text-xl`} style={{ color: NAVY }} />
+            </div>
+            <h3 className="text-sm font-bold mb-1" style={{ color: NAVY }}>
+              {statutCible.action === 'fermer' ? 'Fermer ce rapport ?' : 'Rouvrir ce rapport ?'}
+            </h3>
+            <p className="text-xs text-gray-400 mb-5">
+              {statutCible.action === 'fermer'
+                ? "Le rapport passera en lecture seule et le certificat sera généré (éclairage lié inclus)."
+                : 'Le rapport redeviendra modifiable ; le certificat devra être renvoyé après refermeture.'}
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setStatutCible(null)} className="flex-1 py-2.5 rounded-md text-sm font-semibold border border-gray-200" style={{ color: NAVY }}>Annuler</button>
+              <button onClick={changerStatut} disabled={changementStatut} className="flex-1 py-2.5 rounded-md text-sm font-bold text-white disabled:opacity-50" style={{ background: NAVY }}>
+                {changementStatut ? 'En cours...' : statutCible.action === 'fermer' ? 'Fermer' : 'Rouvrir'}
+              </button>
+            </div>
           </div>
         </div>
       )}

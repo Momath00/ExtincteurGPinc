@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Extincteurs Nationex',
-    short_name: 'Nationex',
+    name: 'ExtincteurGPinc',
+    short_name: 'ExtincteurGPinc',
     description: "Gestion des rapports de vérification et certificats d'extincteurs portatifs",
     start_url: '/login',
     display: 'standalone',
