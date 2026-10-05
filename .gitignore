@@ -1,0 +1,32 @@
+# Environnement Python
+env/
+venv/
+__pycache__/
+*.pyc
+
+# Variables d'environnement (SENSIBLE - ne jamais commit)
+.env
+.env.local
+.env.*.local
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/npm-debug.log*
+
+# Docker
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

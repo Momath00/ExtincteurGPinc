@@ -1,0 +1,33 @@
+.git
+.gitignore
+
+.env
+.env.*
+!.env.example
+
+# Frontend — node_modules/.next pas nécessaires dans l'image backend.
+# frontend/public est gardé : logo.png y est lu pour générer les PDF/courriels.
+frontend/node_modules
+frontend/.next
+
+# Python
+**/__pycache__
+**/*.pyc
+env/
+venv/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Fichiers de travail non liés au code
+*.pdf
+*.html
+!frontend/**/*.html
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
