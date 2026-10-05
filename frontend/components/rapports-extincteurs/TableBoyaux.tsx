@@ -94,7 +94,8 @@ function LigneBoyau({
       <select
         value={it.etat || ''}
         onChange={e => patchField('etat', e.target.value || null)}
-        className="text-xs border-2 border-[#0a0b0d] rounded px-1 py-0.5 focus:outline-none focus:border-[#dc2626] bg-white w-full"
+        className="text-sm font-extrabold border-2 border-[#0a0b0d] rounded px-1.5 py-1 focus:outline-none focus:border-[#dc2626] bg-white w-full min-w-[64px]"
+        style={{ color: it.etat === 'D' ? '#dc2626' : it.etat === 'C' ? '#16a34a' : it.etat === 'NI' ? '#b45309' : '#0a0b0d' }}
       >
         <option value="">-</option>
         <option value="D">D</option>
